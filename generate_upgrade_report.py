@@ -753,6 +753,13 @@ def build_html(data):
     data_inv_volumes = safe_get(data, 'DATA_INV_VOLUMES', [])
     data_hr_volumes = safe_get(data, 'DATA_HR_VOLUMES', [])
     data_fa_volumes = safe_get(data, 'DATA_FA_VOLUMES', [])
+    data_cm_volumes = safe_get(data, 'DATA_CM_VOLUMES', [])
+    data_opm_volumes = safe_get(data, 'DATA_OPM_VOLUMES', [])
+    data_pricing_volumes = safe_get(data, 'DATA_PRICING_VOLUMES', [])
+    
+    # Profile and Patch Changes
+    profile_changes_48h = safe_get(data, 'PROFILE_OPTIONS_CHANGED_48H', [])
+    applied_patches_30d = safe_get(data, 'APPLIED_PATCHES_30_DAYS', [])
     
     # CEMLI Object Data (for drilldowns)
     custom_workflows = safe_get(data, 'CUSTOM_WORKFLOWS', [])
@@ -1414,19 +1421,19 @@ def build_html(data):
             {render_drilldown_table("View Active Users with Responsibilities (up to 1000)", active_users_with_resp, ["User Name", "Responsibility Name"])}
             
             <h3>Organization Structure: Business Groups</h3>
-            {render_table(data_business_groups, ["Business Group Name", "Date From", "Date To", "Legislation Code", "Currency Code"])}
+            {render_table(data_business_groups, ["Business Group Name", "Org ID", "Date From", "Date To", "Legislation Code", "Currency Code"])}
             
             <h3>Organization Structure: Set of Books / Ledgers</h3>
-            {render_table(data_set_of_books, ["Name", "Short Name", "Currency Code", "Period Type", "Latest Opened Period"])}
+            {render_table(data_set_of_books, ["SOB ID", "Name", "Short Name", "Currency Code", "Period Type", "Latest Opened Period", "Currency Name"])}
             
             <h3>Organization Structure: Legal Entities</h3>
-            {render_table(data_legal_entities, ["Legal Entity Name", "LE Identifier", "Country", "Effective From"])}
+            {render_table(data_legal_entities, ["LE ID", "Legal Entity Name", "LE Identifier", "Country", "Address", "Effective From", "Effective To"])}
             
             <h3>Organization Structure: Operating Units</h3>
-            {render_table(data_operating_units, ["Operating Unit Name", "Short Code", "Date From", "Date To"])}
+            {render_table(data_operating_units, ["Org ID", "Operating Unit Name", "Short Code", "Business Group", "Date From", "Date To"])}
             
             <h3>Organization Structure: Inventory Organizations</h3>
-            {render_table(data_inventory_orgs, ["Org Code", "Organization Name", "Date From", "Disable Date"])}
+            {render_table(data_inventory_orgs, ["Org ID", "Org Code", "Organization Name", "Operating Unit", "Master Org ID", "Status"])}
             
             <h3>Module Data Volumes: Payables (AP)</h3>
             {render_table(data_ap_volumes, ["AP Object", "Record Count"])}
@@ -1451,6 +1458,23 @@ def build_html(data):
             
             <h3>Module Data Volumes: Fixed Assets (FA)</h3>
             {render_table(data_fa_volumes, ["FA Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Cost Management (CM)</h3>
+            {render_table(data_cm_volumes, ["CM Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Process Manufacturing (OPM)</h3>
+            {render_table(data_opm_volumes, ["OPM Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Pricing (QP)</h3>
+            {render_table(data_pricing_volumes, ["Pricing Object", "Record Count"])}
+            
+            <h3>Profile Options Changed (Last 48 Hours)</h3>
+            <p style="font-size:13px; color:#475569;">Recent profile option changes that may indicate active configuration or troubleshooting activities.</p>
+            {render_drilldown_table("View Profile Changes", profile_changes_48h, ["Profile Name", "User Profile Name", "Level", "Value", "Changed At", "Changed By"])}
+            
+            <h3>Applied Patches (Last 30 Days)</h3>
+            <p style="font-size:13px; color:#475569;">Recent patch application history for tracking upgrade and maintenance activities.</p>
+            {render_drilldown_table("View Applied Patches", applied_patches_30d, ["Patch Name", "Patch Type", "Applied Date", "Applied Flag"])}
         </div>
 
         <div id="risks" class="section">

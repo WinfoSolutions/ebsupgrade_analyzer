@@ -185,19 +185,19 @@ where node_name <> 'AUTHENTICATION';
 prompt [SECTION_END:EBS_NODES]
 
 prompt [SECTION_START:CTX_DIRECTORIES]
-select node_name ||'|appl_top|'|| EXTRACTVALUE(XMLType(TEXT),'//APPL_TOP')
+select node_name ||'|appl_top|'|| EXTRACTVALUE(XMLType(TEXT),'(//APPL_TOP)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|common_top|'|| EXTRACTVALUE(XMLType(TEXT),'//COMMON_TOP')
+select node_name ||'|common_top|'|| EXTRACTVALUE(XMLType(TEXT),'(//COMMON_TOP)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|instance_top|'|| EXTRACTVALUE(XMLType(TEXT),'//INST_TOP')
+select node_name ||'|instance_top|'|| EXTRACTVALUE(XMLType(TEXT),'(//INST_TOP)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
@@ -205,19 +205,19 @@ and (node_name, last_update_date) in
 prompt [SECTION_END:CTX_DIRECTORIES]
 
 prompt [SECTION_START:CTX_PORTS_SECURITY]
-select node_name ||'|port_pool|'|| EXTRACTVALUE(XMLType(TEXT),'//port_pool')
+select node_name ||'|port_pool|'|| EXTRACTVALUE(XMLType(TEXT),'(//port_pool)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|webport|'|| EXTRACTVALUE(XMLType(TEXT),'//webport')
+select node_name ||'|webport|'|| EXTRACTVALUE(XMLType(TEXT),'(//webport)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|webssl_port|'|| EXTRACTVALUE(XMLType(TEXT),'//webssl_port')
+select node_name ||'|webssl_port|'|| EXTRACTVALUE(XMLType(TEXT),'(//webssl_port)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
@@ -225,19 +225,19 @@ and (node_name, last_update_date) in
 prompt [SECTION_END:CTX_PORTS_SECURITY]
 
 prompt [SECTION_START:CTX_DB_NETWORKING]
-select node_name ||'|db_name|'|| EXTRACTVALUE(XMLType(TEXT),'//dbSid')
+select node_name ||'|db_name|'|| EXTRACTVALUE(XMLType(TEXT),'(//dbSid)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|db_host|'|| EXTRACTVALUE(XMLType(TEXT),'//dbhost')
+select node_name ||'|db_host|'|| EXTRACTVALUE(XMLType(TEXT),'(//dbhost)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|db_port|'|| EXTRACTVALUE(XMLType(TEXT),'//dbport')
+select node_name ||'|db_port|'|| EXTRACTVALUE(XMLType(TEXT),'(//dbport)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
@@ -245,19 +245,19 @@ and (node_name, last_update_date) in
 prompt [SECTION_END:CTX_DB_NETWORKING]
 
 prompt [SECTION_START:CTX_JVM_SERVICES]
-select node_name ||'|oacore_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'//oacore_nprocs')
+select node_name ||'|oacore_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'(//oacore_nprocs)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|forms_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'//forms_nprocs')
+select node_name ||'|forms_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'(//forms_nprocs)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|oafm_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'//oafm_nprocs')
+select node_name ||'|oafm_nprocs|'|| EXTRACTVALUE(XMLType(TEXT),'(//oafm_nprocs)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
@@ -340,6 +340,29 @@ prompt [SECTION_END:EBS_CONCURRENT_MANAGERS]
 prompt [SECTION_START:WF_ADMIN_ROLE]
 select apps.wf_core.translate('WF_ADMIN_ROLE') from dual;
 prompt [SECTION_END:WF_ADMIN_ROLE]
+
+prompt [SECTION_START:PROFILE_OPTIONS_CHANGED_48H]
+SELECT fpo.profile_option_name ||'|'|| fpot.user_profile_option_name ||'|'|| 
+       decode(fpov.level_id, 10001, 'Site', 10002, 'Application', 10003, 'Responsibility', 10004, 'User', 'Other') ||'|'||
+       fpov.profile_option_value ||'|'|| to_char(fpov.last_update_date, 'YYYY-MM-DD HH24:MI:SS') ||'|'|| fu.user_name
+FROM apps.fnd_profile_option_values fpov, apps.fnd_profile_options fpo, 
+     apps.fnd_profile_options_tl fpot, apps.fnd_user fu
+WHERE fpov.profile_option_id = fpo.profile_option_id
+AND fpo.profile_option_name = fpot.profile_option_name AND fpot.language = 'US'
+AND fpov.last_updated_by = fu.user_id
+AND fpov.last_update_date >= sysdate - 2
+ORDER BY fpov.last_update_date DESC;
+prompt [SECTION_END:PROFILE_OPTIONS_CHANGED_48H]
+
+prompt [SECTION_START:APPLIED_PATCHES_30_DAYS]
+SELECT DISTINCT e.patch_name ||'|'|| e.patch_type ||'|'|| to_char(a.last_update_date, 'YYYY-MM-DD') ||'|'|| b.applied_flag
+FROM apps.ad_bugs a, apps.ad_patch_run_bugs b, apps.ad_patch_runs c, 
+     apps.ad_patch_drivers d, apps.ad_applied_patches e
+WHERE a.bug_id = b.bug_id AND b.patch_run_id = c.patch_run_id
+AND c.patch_driver_id = d.patch_driver_id AND d.applied_patch_id = e.applied_patch_id
+AND a.last_update_date >= sysdate - 30
+ORDER BY a.last_update_date DESC;
+prompt [SECTION_END:APPLIED_PATCHES_30_DAYS]
 
 prompt [SECTION_START:EBS_LOCALIZATIONS]
 select fa.application_short_name ||'|'|| fat.application_name ||'|'|| fpi.status
@@ -1136,7 +1159,7 @@ prompt [SECTION_END:CEMLI_DATA_DEFINITIONS]
 -- Data Reconciliator: Business Group and Organization Structure
 
 prompt [SECTION_START:DATA_BUSINESS_GROUPS]
-select otl.name ||'|'|| to_char(o.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(o.date_to, 'YYYY-MM-DD'), 'Active') ||'|'|| nvl(o3.org_information9, 'N/A') ||'|'|| nvl(o3.org_information10, 'N/A')
+select otl.name ||'|'|| o.organization_id ||'|'|| to_char(o.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(o.date_to, 'YYYY-MM-DD'), 'Active') ||'|'|| nvl(o3.org_information9, 'N/A') ||'|'|| nvl(o3.org_information10, 'N/A')
 from apps.hr_all_organization_units o, apps.hr_all_organization_units_tl otl, apps.hr_organization_information o3, apps.hr_organization_information o4
 where o.organization_id = otl.organization_id
 and o.organization_id = o3.organization_id
@@ -1145,34 +1168,31 @@ and o3.org_information_context = 'Business Group Information'
 and o4.org_information_context = 'CLASS'
 and o4.org_information1 = 'HR_BG'
 and o4.org_information2 = 'Y'
-and otl.language = 'US'
-and rownum <= 100;
+and otl.language = 'US';
 prompt [SECTION_END:DATA_BUSINESS_GROUPS]
 
 prompt [SECTION_START:DATA_SET_OF_BOOKS]
-select name ||'|'|| short_name ||'|'|| currency_code ||'|'|| accounted_period_type ||'|'|| nvl(latest_opened_period_name, 'N/A')
-from apps.gl_sets_of_books
-where rownum <= 100;
+select sob.set_of_books_id ||'|'|| sob.name ||'|'|| sob.short_name ||'|'|| sob.currency_code ||'|'|| sob.accounted_period_type ||'|'|| nvl(sob.latest_opened_period_name, 'N/A') ||'|'|| fc.name
+from apps.gl_sets_of_books sob, apps.fnd_currencies_vl fc
+where sob.currency_code = fc.currency_code;
 prompt [SECTION_END:DATA_SET_OF_BOOKS]
 
 prompt [SECTION_START:DATA_LEGAL_ENTITIES]
-select xep.name ||'|'|| xep.legal_entity_identifier ||'|'|| nvl(hla.country, 'N/A') ||'|'|| to_char(xep.effective_from, 'YYYY-MM-DD')
+select xep.legal_entity_id ||'|'|| xep.name ||'|'|| xep.legal_entity_identifier ||'|'|| nvl(hla.country, 'N/A') ||'|'|| nvl(hla.address_line_1, 'N/A') ||'|'|| to_char(xep.effective_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(xep.effective_to, 'YYYY-MM-DD'), 'Active')
 from apps.xle_entity_profiles xep, apps.hr_locations_all hla
-where xep.location_id = hla.location_id(+)
-and rownum <= 100;
+where xep.location_id = hla.location_id(+);
 prompt [SECTION_END:DATA_LEGAL_ENTITIES]
 
 prompt [SECTION_START:DATA_OPERATING_UNITS]
-select hou.name ||'|'|| hou.short_code ||'|'|| to_char(hou.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(hou.date_to, 'YYYY-MM-DD'), 'Active')
-from apps.hr_operating_units hou
-where rownum <= 100;
+select hou.organization_id ||'|'|| hou.name ||'|'|| hou.short_code ||'|'|| hout.name ||'|'|| to_char(hou.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(hou.date_to, 'YYYY-MM-DD'), 'Active')
+from apps.hr_operating_units hou, apps.hr_all_organization_units_tl hout
+where hou.business_group_id = hout.organization_id(+) and hout.language(+) = 'US';
 prompt [SECTION_END:DATA_OPERATING_UNITS]
 
 prompt [SECTION_START:DATA_INVENTORY_ORGS]
-select mp.organization_code ||'|'|| ood.organization_name ||'|'|| nvl(to_char(ood.disable_date, 'YYYY-MM-DD'), 'Active')
+select mp.organization_id ||'|'|| mp.organization_code ||'|'|| ood.organization_name ||'|'|| ood.operating_unit ||'|'|| nvl(mp.master_organization_id, 0) ||'|'|| nvl(to_char(ood.disable_date, 'YYYY-MM-DD'), 'Active')
 from apps.mtl_parameters mp, apps.org_organization_definitions ood
-where mp.organization_id = ood.organization_id
-and rownum <= 200;
+where mp.organization_id = ood.organization_id;
 prompt [SECTION_END:DATA_INVENTORY_ORGS]
 
 -- Data Reconciliator: Module-Specific Data Volumes
@@ -1180,54 +1200,112 @@ prompt [SECTION_END:DATA_INVENTORY_ORGS]
 prompt [SECTION_START:DATA_AP_VOLUMES]
 select 'AP_INVOICES' ||'|'|| count(*) from apps.ap_invoices_all union all
 select 'AP_SUPPLIERS' ||'|'|| count(*) from apps.ap_suppliers union all
+select 'AP_SUPPLIER_SITES' ||'|'|| count(*) from apps.ap_supplier_sites_all union all
 select 'AP_PAYMENTS' ||'|'|| count(*) from apps.ap_checks_all union all
-select 'AP_INVOICE_LINES' ||'|'|| count(*) from apps.ap_invoice_lines_all;
+select 'AP_INVOICE_LINES' ||'|'|| count(*) from apps.ap_invoice_lines_all union all
+select 'AP_INVOICE_DISTRIBUTIONS' ||'|'|| count(*) from apps.ap_invoice_distributions_all union all
+select 'AP_PAYMENT_SCHEDULES' ||'|'|| count(*) from apps.ap_payment_schedules_all union all
+select 'AP_HOLDS' ||'|'|| count(*) from apps.ap_holds_all;
 prompt [SECTION_END:DATA_AP_VOLUMES]
 
 prompt [SECTION_START:DATA_AR_VOLUMES]
 select 'AR_CUSTOMERS' ||'|'|| count(*) from apps.hz_cust_accounts union all
+select 'AR_CUSTOMER_SITES' ||'|'|| count(*) from apps.hz_cust_acct_sites_all union all
 select 'AR_INVOICES' ||'|'|| count(*) from apps.ra_customer_trx_all union all
 select 'AR_RECEIPTS' ||'|'|| count(*) from apps.ar_cash_receipts_all union all
-select 'AR_INVOICE_LINES' ||'|'|| count(*) from apps.ra_customer_trx_lines_all;
+select 'AR_INVOICE_LINES' ||'|'|| count(*) from apps.ra_customer_trx_lines_all union all
+select 'AR_INVOICE_DISTRIBUTIONS' ||'|'|| count(*) from apps.ra_cust_trx_line_gl_dist_all union all
+select 'AR_RECEIVABLE_APPS' ||'|'|| count(*) from apps.ar_receivable_applications_all union all
+select 'AR_PAYMENT_SCHEDULES' ||'|'|| count(*) from apps.ar_payment_schedules_all;
 prompt [SECTION_END:DATA_AR_VOLUMES]
 
 prompt [SECTION_START:DATA_GL_VOLUMES]
 select 'GL_LEDGERS' ||'|'|| count(*) from apps.gl_ledgers union all
+select 'GL_PERIODS' ||'|'|| count(*) from apps.gl_periods union all
 select 'GL_JOURNALS' ||'|'|| count(*) from apps.gl_je_headers union all
 select 'GL_JOURNAL_LINES' ||'|'|| count(*) from apps.gl_je_lines union all
-select 'GL_ACCOUNTS' ||'|'|| count(*) from apps.gl_code_combinations;
+select 'GL_ACCOUNTS' ||'|'|| count(*) from apps.gl_code_combinations union all
+select 'GL_BALANCES' ||'|'|| count(*) from apps.gl_balances union all
+select 'GL_DAILY_RATES' ||'|'|| count(*) from apps.gl_daily_rates;
 prompt [SECTION_END:DATA_GL_VOLUMES]
 
 prompt [SECTION_START:DATA_PO_VOLUMES]
 select 'PO_HEADERS' ||'|'|| count(*) from apps.po_headers_all union all
 select 'PO_LINES' ||'|'|| count(*) from apps.po_lines_all union all
+select 'PO_LINE_LOCATIONS' ||'|'|| count(*) from apps.po_line_locations_all union all
+select 'PO_DISTRIBUTIONS' ||'|'|| count(*) from apps.po_distributions_all union all
 select 'PO_REQUISITIONS' ||'|'|| count(*) from apps.po_requisition_headers_all union all
-select 'PO_RECEIPTS' ||'|'|| count(*) from apps.rcv_shipment_headers;
+select 'PO_REQUISITION_LINES' ||'|'|| count(*) from apps.po_requisition_lines_all union all
+select 'PO_RECEIPTS' ||'|'|| count(*) from apps.rcv_shipment_headers union all
+select 'PO_RECEIPT_LINES' ||'|'|| count(*) from apps.rcv_shipment_lines union all
+select 'PO_RCV_TRANSACTIONS' ||'|'|| count(*) from apps.rcv_transactions;
 prompt [SECTION_END:DATA_PO_VOLUMES]
 
 prompt [SECTION_START:DATA_OM_VOLUMES]
 select 'OM_ORDERS' ||'|'|| count(*) from apps.oe_order_headers_all union all
 select 'OM_ORDER_LINES' ||'|'|| count(*) from apps.oe_order_lines_all union all
-select 'OM_DELIVERIES' ||'|'|| count(*) from apps.wsh_delivery_details;
+select 'OM_ORDER_HOLDS' ||'|'|| count(*) from apps.oe_order_holds_all union all
+select 'OM_PRICE_ADJUSTMENTS' ||'|'|| count(*) from apps.oe_price_adjustments union all
+select 'OM_DELIVERIES' ||'|'|| count(*) from apps.wsh_delivery_details union all
+select 'OM_DELIVERY_ASSIGNMENTS' ||'|'|| count(*) from apps.wsh_delivery_assignments union all
+select 'OM_NEW_DELIVERIES' ||'|'|| count(*) from apps.wsh_new_deliveries;
 prompt [SECTION_END:DATA_OM_VOLUMES]
 
 prompt [SECTION_START:DATA_INV_VOLUMES]
 select 'INV_ITEMS' ||'|'|| count(*) from apps.mtl_system_items_b union all
+select 'INV_ITEM_CATEGORIES' ||'|'|| count(*) from apps.mtl_item_categories union all
 select 'INV_ONHAND' ||'|'|| count(*) from apps.mtl_onhand_quantities_detail union all
-select 'INV_TRANSACTIONS' ||'|'|| count(*) from apps.mtl_material_transactions;
+select 'INV_TRANSACTIONS' ||'|'|| count(*) from apps.mtl_material_transactions union all
+select 'INV_RESERVATIONS' ||'|'|| count(*) from apps.mtl_reservations union all
+select 'INV_LOT_NUMBERS' ||'|'|| count(*) from apps.mtl_lot_numbers union all
+select 'INV_SERIAL_NUMBERS' ||'|'|| count(*) from apps.mtl_serial_numbers;
 prompt [SECTION_END:DATA_INV_VOLUMES]
 
 prompt [SECTION_START:DATA_HR_VOLUMES]
 select 'HR_EMPLOYEES' ||'|'|| count(*) from apps.per_all_people_f union all
 select 'HR_ASSIGNMENTS' ||'|'|| count(*) from apps.per_all_assignments_f union all
-select 'HR_POSITIONS' ||'|'|| count(*) from apps.hr_all_positions_f;
+select 'HR_POSITIONS' ||'|'|| count(*) from apps.hr_all_positions_f union all
+select 'HR_ORGANIZATIONS' ||'|'|| count(*) from apps.hr_all_organization_units union all
+select 'HR_JOBS' ||'|'|| count(*) from apps.per_jobs union all
+select 'HR_GRADES' ||'|'|| count(*) from apps.per_grades union all
+select 'HR_PAY_PROPOSALS' ||'|'|| count(*) from apps.per_pay_proposals;
 prompt [SECTION_END:DATA_HR_VOLUMES]
 
 prompt [SECTION_START:DATA_FA_VOLUMES]
 select 'FA_ASSET_BOOKS' ||'|'|| count(*) from apps.fa_book_controls union all
 select 'FA_ASSETS' ||'|'|| count(*) from apps.fa_additions_b union all
-select 'FA_ASSET_BOOKS_DETAIL' ||'|'|| count(*) from apps.fa_books;
+select 'FA_ASSET_BOOKS_DETAIL' ||'|'|| count(*) from apps.fa_books union all
+select 'FA_ASSET_CATEGORIES' ||'|'|| count(*) from apps.fa_categories_b union all
+select 'FA_DEPRN_PERIODS' ||'|'|| count(*) from apps.fa_deprn_periods union all
+select 'FA_DEPRN_SUMMARY' ||'|'|| count(*) from apps.fa_deprn_summary union all
+select 'FA_ADJUSTMENTS' ||'|'|| count(*) from apps.fa_adjustments;
 prompt [SECTION_END:DATA_FA_VOLUMES]
+
+prompt [SECTION_START:DATA_CM_VOLUMES]
+select 'CM_COST_TYPES' ||'|'|| count(*) from apps.cst_cost_types union all
+select 'CM_ITEM_COSTS' ||'|'|| count(*) from apps.cst_item_costs union all
+select 'CM_ITEM_COST_DETAILS' ||'|'|| count(*) from apps.cst_item_cost_details union all
+select 'CM_COST_GROUPS' ||'|'|| count(*) from apps.cst_cost_groups union all
+select 'CM_TRANSACTIONS' ||'|'|| count(*) from apps.mtl_cst_actual_cost_details;
+prompt [SECTION_END:DATA_CM_VOLUMES]
+
+prompt [SECTION_START:DATA_OPM_VOLUMES]
+select 'OPM_BATCHES' ||'|'|| count(*) from apps.gme_batch_header union all
+select 'OPM_BATCH_STEPS' ||'|'|| count(*) from apps.gme_batch_steps union all
+select 'OPM_MATERIAL_DETAILS' ||'|'|| count(*) from apps.gme_material_details union all
+select 'OPM_RECIPES' ||'|'|| count(*) from apps.gmd_recipes_b union all
+select 'OPM_FORMULAS' ||'|'|| count(*) from apps.fm_form_mst_b union all
+select 'OPM_ROUTINGS' ||'|'|| count(*) from apps.gmd_routings_b;
+prompt [SECTION_END:DATA_OPM_VOLUMES]
+
+prompt [SECTION_START:DATA_PRICING_VOLUMES]
+select 'QP_LIST_HEADERS' ||'|'|| count(*) from apps.qp_list_headers_b union all
+select 'QP_LIST_LINES' ||'|'|| count(*) from apps.qp_list_lines union all
+select 'QP_PRICING_ATTRIBUTES' ||'|'|| count(*) from apps.qp_pricing_attributes union all
+select 'QP_QUALIFIERS' ||'|'|| count(*) from apps.qp_qualifiers union all
+select 'QP_PRICE_FORMULAS' ||'|'|| count(*) from apps.qp_price_formulas_b union all
+select 'QP_MODIFIERS' ||'|'|| count(*) from apps.qp_list_headers_b where list_type_code = 'DLT';
+prompt [SECTION_END:DATA_PRICING_VOLUMES]
 
 
 exit;
