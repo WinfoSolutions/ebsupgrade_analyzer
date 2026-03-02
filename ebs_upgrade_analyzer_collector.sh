@@ -107,6 +107,77 @@ select name ||'|'|| value from v$parameter
 where name in ('processes', 'sessions', 'open_cursors', 'utl_file_dir', 'sga_max_size', 'sga_target', 'pga_aggregate_target', 'memory_target', 'compatible', 'cluster_database', 'cpu_count');
 prompt [SECTION_END:DB_PARAMETERS]
 
+-- RAC Database Detection and Information Collection
+prompt [SECTION_START:RAC_STATUS]
+select 'CLUSTER_DATABASE' ||'|'|| value from v$parameter where name = 'cluster_database';
+select 'INSTANCE_COUNT' ||'|'|| count(*) from gv$instance;
+select 'CLUSTER_NAME' ||'|'|| nvl((select value from v$parameter where name = 'cluster_database_instances'), 'N/A') from dual;
+prompt [SECTION_END:RAC_STATUS]
+
+prompt [SECTION_START:RAC_INSTANCES]
+select inst_id ||'|'|| instance_name ||'|'|| host_name ||'|'|| version ||'|'|| status ||'|'|| to_char(startup_time, 'YYYY-MM-DD HH24:MI:SS') ||'|'|| database_status ||'|'|| instance_role
+from gv$instance order by inst_id;
+prompt [SECTION_END:RAC_INSTANCES]
+
+prompt [SECTION_START:RAC_INSTANCE_PARAMETERS]
+select inst_id ||'|'|| name ||'|'|| value ||'|'|| isdefault
+from gv$parameter
+where name in ('instance_name', 'instance_number', 'thread', 'undo_tablespace', 'cluster_database', 
+               'cluster_database_instances', 'cluster_interconnects', 'remote_listener', 'local_listener',
+               'sga_target', 'sga_max_size', 'pga_aggregate_target', 'memory_target', 'memory_max_target',
+               'db_cache_size', 'shared_pool_size', 'large_pool_size', 'java_pool_size', 'streams_pool_size',
+               'processes', 'sessions', 'cpu_count', 'parallel_max_servers', 'log_archive_dest_1', 'log_archive_dest_2')
+order by inst_id, name;
+prompt [SECTION_END:RAC_INSTANCE_PARAMETERS]
+
+prompt [SECTION_START:RAC_INTERCONNECT]
+select inst_id ||'|'|| name ||'|'|| ip_address ||'|'|| is_public ||'|'|| source
+from gv$cluster_interconnects order by inst_id;
+prompt [SECTION_END:RAC_INTERCONNECT]
+
+prompt [SECTION_START:RAC_SERVICES]
+select inst_id ||'|'|| name ||'|'|| network_name ||'|'|| enabled ||'|'|| nvl(aq_ha_notifications, 'N/A') ||'|'|| nvl(clb_goal, 'N/A') ||'|'|| nvl(goal, 'N/A')
+from gv$services order by name, inst_id;
+prompt [SECTION_END:RAC_SERVICES]
+
+prompt [SECTION_START:RAC_DATABASE_INFO]
+select 'DB_UNIQUE_NAME' ||'|'|| db_unique_name from v$database
+union all
+select 'PLATFORM_NAME' ||'|'|| platform_name from v$database
+union all
+select 'CREATED' ||'|'|| to_char(created, 'YYYY-MM-DD HH24:MI:SS') from v$database
+union all
+select 'OPEN_MODE' ||'|'|| open_mode from v$database
+union all
+select 'PROTECTION_MODE' ||'|'|| protection_mode from v$database
+union all
+select 'DATABASE_ROLE' ||'|'|| database_role from v$database;
+prompt [SECTION_END:RAC_DATABASE_INFO]
+
+prompt [SECTION_START:RAC_ASM_DISKGROUPS]
+select name ||'|'|| state ||'|'|| type ||'|'|| total_mb ||'|'|| free_mb ||'|'|| round((free_mb/total_mb)*100, 2) as pct_free
+from v$asm_diskgroup where total_mb > 0;
+prompt [SECTION_END:RAC_ASM_DISKGROUPS]
+
+prompt [SECTION_START:RAC_GV_SYSSTAT]
+select inst_id ||'|'|| name ||'|'|| value 
+from gv$sysstat 
+where name in ('gc cr blocks received', 'gc current blocks received', 'gc cr blocks served', 'gc current blocks served', 
+               'global cache gets', 'global cache get time', 'gc cr block receive time', 'gc current block receive time')
+order by inst_id, name;
+prompt [SECTION_END:RAC_GV_SYSSTAT]
+
+prompt [SECTION_START:RAC_THREAD_REDO]
+select thread# ||'|'|| group# ||'|'|| members ||'|'|| round(bytes/1024/1024, 0) ||'|'|| status ||'|'|| archived
+from v$log order by thread#, group#;
+prompt [SECTION_END:RAC_THREAD_REDO]
+
+prompt [SECTION_START:RAC_SCAN_LISTENERS]
+select 'SCAN_LISTENER' ||'|'|| value from v$parameter where name = 'remote_listener'
+union all
+select 'LOCAL_LISTENER' ||'|'|| value from v$parameter where name = 'local_listener';
+prompt [SECTION_END:RAC_SCAN_LISTENERS]
+
 prompt [SECTION_START:EBS_NODES]
 select node_name ||'|'|| decode(support_cp, 'Y','YES','N','NO') ||'|'|| decode(support_forms, 'Y','YES','N','NO') ||'|'|| decode(support_web, 'Y','YES','N','NO') ||'|'|| decode(support_db, 'Y','YES','N','NO') ||'|'|| status
 from apps.fnd_nodes
@@ -719,9 +790,9 @@ where rownum <= 500;
 prompt [SECTION_END:FLAGGED_FILES_FOR_UPGRADE]
 
 prompt [SECTION_START:CUSTOM_TOP_FILES]
-select at.name ||'|'|| at.basepath ||'|'|| nvl(at.applications_system_name, 'N/A')
-from apps.ad_appl_tops at
-where at.name like 'XX%' or at.basepath like '%/custom%';
+select name ||'|'|| appl_top_id ||'|'|| nvl(server_type_admin_flag, 'N/A')
+from apps.ad_appl_tops
+where name like 'XX%' or name like 'CUSTOM%';
 prompt [SECTION_END:CUSTOM_TOP_FILES]
 
 prompt [SECTION_START:AD_FILES_BY_TYPE]
@@ -735,13 +806,12 @@ prompt [SECTION_END:AD_FILES_BY_TYPE]
 prompt [SECTION_START:PATCHED_FILES_RECENT]
 select * from (
 select af.app_short_name ||'|'|| af.filename ||'|'|| aap.patch_name ||'|'|| to_char(aap.creation_date, 'YYYY-MM-DD')
-from apps.ad_files af, apps.ad_file_versions afv, apps.ad_patch_run_bug_actions aprba, apps.ad_patch_runs apr, apps.ad_patch_drivers apd, apps.ad_applied_patches aap
-where af.file_id = afv.file_id
-and afv.file_version_id = aprba.file_version_id
-and aprba.patch_run_id = apr.patch_run_id
-and apr.patch_driver_id = apd.patch_driver_id
-and apd.applied_patch_id = aap.applied_patch_id
+from apps.ad_files af, apps.ad_applied_patches aap, apps.ad_patch_drivers apd, apps.ad_patch_runs apr, apps.ad_patch_run_bugs aprb
+where aap.applied_patch_id = apd.applied_patch_id
+and apd.patch_driver_id = apr.patch_driver_id
+and apr.patch_run_id = aprb.patch_run_id
 and aap.creation_date >= sysdate - 90
+and af.app_short_name is not null
 order by aap.creation_date desc)
 where rownum <= 200;
 prompt [SECTION_END:PATCHED_FILES_RECENT]
@@ -987,7 +1057,7 @@ where rownum <= 100;
 prompt [SECTION_END:DATA_OPERATING_UNITS]
 
 prompt [SECTION_START:DATA_INVENTORY_ORGS]
-select mp.organization_code ||'|'|| ood.organization_name ||'|'|| nvl(to_char(ood.date_from, 'YYYY-MM-DD'), 'N/A') ||'|'|| nvl(to_char(ood.disable_date, 'YYYY-MM-DD'), 'Active')
+select mp.organization_code ||'|'|| ood.organization_name ||'|'|| nvl(to_char(ood.disable_date, 'YYYY-MM-DD'), 'Active')
 from apps.mtl_parameters mp, apps.org_organization_definitions ood
 where mp.organization_id = ood.organization_id
 and rownum <= 200;
