@@ -110,104 +110,83 @@ where node_name <> 'AUTHENTICATION';
 prompt [SECTION_END:EBS_NODES]
 
 prompt [SECTION_START:CTX_DIRECTORIES]
-select * from (
-with ctx as (
-    select n.node_name, xmltype(c.text) as xml_doc
-    from apps.fnd_nodes n,
-         (select node_name, text from apps.fnd_oam_context_files 
-          where (node_name, last_update_date) in 
-              (select node_name, max(last_update_date) 
-               from apps.fnd_oam_context_files 
-               where status not in ('H') 
-               group by node_name)
-         ) c
-    where lower(n.node_name) = lower(c.node_name)
-    and n.node_name <> 'AUTHENTICATION'
-)
-select node_name ||'|appl_top|'|| EXTRACTVALUE(xml_doc, '//s_appl_top') from ctx union all
-select node_name ||'|common_top|'|| EXTRACTVALUE(xml_doc, '//s_com') from ctx union all
-select node_name ||'|10.1.2_home|'|| EXTRACTVALUE(xml_doc, '//s_tools_oh') from ctx union all
-select node_name ||'|instance_top|'|| EXTRACTVALUE(xml_doc, '//s_inst_top') from ctx union all
-select node_name ||'|shared_file_system|'|| EXTRACTVALUE(xml_doc, '//s_shared_file_system') from ctx union all
-select node_name ||'|jws_top|'|| EXTRACTVALUE(xml_doc, '//s_jws_top') from ctx union all
-select node_name ||'|ebs_central_inventory|'|| EXTRACTVALUE(xml_doc, '//s_ebs_central_inventory') from ctx union all
-select node_name ||'|adconfig_path|'|| EXTRACTVALUE(xml_doc, '//adconfig') from ctx
-);
+select node_name ||'|appl_top|'|| extractvalue(xmltype(text), '//*[local-name()="s_appl_top"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|common_top|'|| extractvalue(xmltype(text), '//*[local-name()="s_common_top"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|instance_top|'|| extractvalue(xmltype(text), '//*[local-name()="s_inst_top"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name);
 prompt [SECTION_END:CTX_DIRECTORIES]
 
 prompt [SECTION_START:CTX_PORTS_SECURITY]
-select * from (
-with ctx as (
-    select n.node_name, xmltype(c.text) as xml_doc
-    from apps.fnd_nodes n,
-         (select node_name, text from apps.fnd_oam_context_files 
-          where (node_name, last_update_date) in 
-              (select node_name, max(last_update_date) 
-               from apps.fnd_oam_context_files 
-               where status not in ('H') 
-               group by node_name)
-         ) c
-    where lower(n.node_name) = lower(c.node_name)
-    and n.node_name <> 'AUTHENTICATION'
-)
-select node_name ||'|port_pool|'|| EXTRACTVALUE(xml_doc, '//s_port_pool') from ctx union all
-select node_name ||'|sslterminator|'|| EXTRACTVALUE(xml_doc, '//s_sslterminator') from ctx union all
-select node_name ||'|session_timeout|'|| EXTRACTVALUE(xml_doc, '//s_sesstimeout') from ctx union all
-select node_name ||'|ssl_keystore|'|| EXTRACTVALUE(xml_doc, '//s_adkeystore') from ctx union all
-select node_name ||'|scan_name|'|| EXTRACTVALUE(xml_doc, '//s_scan_name') from ctx union all
-select node_name ||'|scan_port|'|| EXTRACTVALUE(xml_doc, '//s_scan_port') from ctx union all
-select node_name ||'|appserverid_authentication|'|| EXTRACTVALUE(xml_doc, '//s_appserverid_authentication') from ctx union all
-select node_name ||'|java_object_cache_port|'|| EXTRACTVALUE(xml_doc, '//s_java_object_cache_port') from ctx
-);
+select node_name ||'|port_pool|'|| extractvalue(xmltype(text), '//*[local-name()="s_port_pool"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|webport|'|| extractvalue(xmltype(text), '//*[local-name()="s_webport"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|webssl_port|'|| extractvalue(xmltype(text), '//*[local-name()="s_webssl_port"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name);
 prompt [SECTION_END:CTX_PORTS_SECURITY]
 
 prompt [SECTION_START:CTX_DB_NETWORKING]
-select * from (
-with ctx as (
-    select n.node_name, xmltype(c.text) as xml_doc
-    from apps.fnd_nodes n,
-         (select node_name, text from apps.fnd_oam_context_files 
-          where (node_name, last_update_date) in 
-              (select node_name, max(last_update_date) 
-               from apps.fnd_oam_context_files 
-               where status not in ('H') 
-               group by node_name)
-         ) c
-    where lower(n.node_name) = lower(c.node_name)
-    and n.node_name <> 'AUTHENTICATION'
-)
-select node_name ||'|jdbc_url|'|| EXTRACTVALUE(xml_doc, '//s_apps_jdbc_connect_descriptor') from ctx union all
-select node_name ||'|dbc_file|'|| EXTRACTVALUE(xml_doc, '//s_dbcset') from ctx
-);
+select node_name ||'|db_name|'|| extractvalue(xmltype(text), '//*[local-name()="s_dbSid"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|db_host|'|| extractvalue(xmltype(text), '//*[local-name()="s_dbhost"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
+union all
+select node_name ||'|db_port|'|| extractvalue(xmltype(text), '//*[local-name()="s_dbport"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name);
 prompt [SECTION_END:CTX_DB_NETWORKING]
 
 prompt [SECTION_START:CTX_JVM_SERVICES]
-select * from (
-with ctx as (
-    select n.node_name, xmltype(c.text) as xml_doc
-    from apps.fnd_nodes n,
-         (select node_name, text from apps.fnd_oam_context_files 
-          where (node_name, last_update_date) in 
-              (select node_name, max(last_update_date) 
-               from apps.fnd_oam_context_files 
-               where status not in ('H') 
-               group by node_name)
-         ) c
-    where lower(n.node_name) = lower(c.node_name)
-    and n.node_name <> 'AUTHENTICATION'
-)
-select node_name ||'|oacore|'|| EXTRACTVALUE(xml_doc, '//s_oacore_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oacore_jvm_start_options') from ctx
+select node_name ||'|oacore_nprocs|'|| extractvalue(xmltype(text), '//*[local-name()="s_oacore_nprocs"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|oafm|'|| EXTRACTVALUE(xml_doc, '//s_oafm_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oafm_jvm_start_options') from ctx
+select node_name ||'|forms_nprocs|'|| extractvalue(xmltype(text), '//*[local-name()="s_forms_nprocs"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name)
 union all
-select node_name ||'|forms|'|| EXTRACTVALUE(xml_doc, '//s_forms_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_forms_jvm_start_options') from ctx
-union all
-select node_name ||'|oaea|'|| EXTRACTVALUE(xml_doc, '//s_oaea_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oaea_jvm_start_options') from ctx
-union all
-select node_name ||'|oa_workflow_server|'|| EXTRACTVALUE(xml_doc, '//s_oaworkflow_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oaworkflow_jvm_start_options') from ctx
-union all
-select node_name ||'|oxta|'|| EXTRACTVALUE(xml_doc, '//load_oxta_servlet') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oxta_proxy_url') from ctx
-);
+select node_name ||'|oafm_nprocs|'|| extractvalue(xmltype(text), '//*[local-name()="s_oafm_nprocs"]')
+from apps.fnd_oam_context_files
+where status = 'S' and ctx_type = 'A'
+and (node_name, last_update_date) in 
+    (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' group by node_name);
 prompt [SECTION_END:CTX_JVM_SERVICES]
 
 prompt [SECTION_START:EBS_INTEGRATIONS_PROFILES]
@@ -762,6 +741,301 @@ and aap.creation_date >= sysdate - 90
 order by aap.creation_date desc)
 where rownum <= 200;
 prompt [SECTION_END:PATCHED_FILES_RECENT]
+
+-- CEMLI Extract: Custom Application Objects
+
+prompt [SECTION_START:CEMLI_CUSTOM_APPLICATIONS]
+select a.application_id ||'|'|| a.application_name ||'|'|| a.application_short_name ||'|'|| a.basepath ||'|'|| to_char(a.creation_date, 'YYYY-MM-DD')
+from apps.fnd_application_vl a, apps.fnd_user u
+where u.user_id = a.created_by
+and ((u.user_name not like 'ORACLE12%' and u.user_name not in ('INITIAL SETUP','AUTOINSTALL') and a.application_id >= 20000) or a.application_short_name like 'XX%')
+and rownum <= 100;
+prompt [SECTION_END:CEMLI_CUSTOM_APPLICATIONS]
+
+prompt [SECTION_START:CEMLI_CUSTOM_ALERTS]
+select aa.alert_name ||'|'|| fav.application_name ||'|'|| decode(aa.alert_condition_type, 'E', 'Event', 'P', 'Periodic', aa.alert_condition_type) ||'|'|| decode(aa.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled', 'Enabled')
+from apps.alr_alerts aa, apps.fnd_application_vl fav
+where aa.application_id = fav.application_id
+and (fav.application_short_name like 'XX%' or upper(aa.alert_name) like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CUSTOM_ALERTS]
+
+prompt [SECTION_START:CEMLI_CONC_PROG_HOST]
+select fcpt.user_concurrent_program_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee.execution_file_name ||'|'|| fee.executable_name ||'|'|| decode(fcp.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled')
+from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_concurrent_programs_tl fcpt
+where fee.executable_id = fcp.executable_id
+and fcp.concurrent_program_id = fcpt.concurrent_program_id
+and fcpt.language = 'US'
+and fee.execution_method_code = 'H'
+and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CONC_PROG_HOST]
+
+prompt [SECTION_START:CEMLI_CONC_PROG_JAVA]
+select fcpt.user_concurrent_program_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee.execution_file_name ||'|'|| fee.executable_name ||'|'|| decode(fcp.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled')
+from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_concurrent_programs_tl fcpt
+where fee.executable_id = fcp.executable_id
+and fcp.concurrent_program_id = fcpt.concurrent_program_id
+and fcpt.language = 'US'
+and fee.execution_method_code in ('J', 'K')
+and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CONC_PROG_JAVA]
+
+prompt [SECTION_START:CEMLI_CONC_PROG_REPORTS]
+select fcpt.user_concurrent_program_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee.execution_file_name ||'|'|| fee.executable_name ||'|'|| decode(fcp.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled')
+from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_concurrent_programs_tl fcpt
+where fee.executable_id = fcp.executable_id
+and fcp.concurrent_program_id = fcpt.concurrent_program_id
+and fcpt.language = 'US'
+and fee.execution_method_code = 'P'
+and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CONC_PROG_REPORTS]
+
+prompt [SECTION_START:CEMLI_CONC_PROG_SQLLOADER]
+select fcpt.user_concurrent_program_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee.execution_file_name ||'|'|| fee.executable_name ||'|'|| decode(fcp.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled')
+from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_concurrent_programs_tl fcpt
+where fee.executable_id = fcp.executable_id
+and fcp.concurrent_program_id = fcpt.concurrent_program_id
+and fcpt.language = 'US'
+and fee.execution_method_code = 'L'
+and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CONC_PROG_SQLLOADER]
+
+prompt [SECTION_START:CEMLI_CONC_PROG_SQLPLUS]
+select fcpt.user_concurrent_program_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee.execution_file_name ||'|'|| fee.executable_name ||'|'|| decode(fcp.enabled_flag, 'N', 'Disabled', 'Y', 'Enabled')
+from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_concurrent_programs_tl fcpt
+where fee.executable_id = fcp.executable_id
+and fcp.concurrent_program_id = fcpt.concurrent_program_id
+and fcpt.language = 'US'
+and fee.execution_method_code = 'Q'
+and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_CONC_PROG_SQLPLUS]
+
+-- CEMLI Extract: Custom Database Objects
+
+prompt [SECTION_START:CEMLI_DB_FUNCTIONS]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'FUNCTION'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_DB_FUNCTIONS]
+
+prompt [SECTION_START:CEMLI_DB_INDEXES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'INDEX'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 500;
+prompt [SECTION_END:CEMLI_DB_INDEXES]
+
+prompt [SECTION_START:CEMLI_DB_PACKAGES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type in ('PACKAGE', 'PACKAGE BODY')
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 500;
+prompt [SECTION_END:CEMLI_DB_PACKAGES]
+
+prompt [SECTION_START:CEMLI_DB_PROCEDURES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'PROCEDURE'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_DB_PROCEDURES]
+
+prompt [SECTION_START:CEMLI_DB_SEQUENCES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'SEQUENCE'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_DB_SEQUENCES]
+
+prompt [SECTION_START:CEMLI_DB_SYNONYMS]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'SYNONYM'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 500;
+prompt [SECTION_END:CEMLI_DB_SYNONYMS]
+
+prompt [SECTION_START:CEMLI_DB_TABLES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'TABLE'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 500;
+prompt [SECTION_END:CEMLI_DB_TABLES]
+
+prompt [SECTION_START:CEMLI_DB_TRIGGERS]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'TRIGGER'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_DB_TRIGGERS]
+
+prompt [SECTION_START:CEMLI_DB_TYPES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type in ('TYPE', 'TYPE BODY')
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_DB_TYPES]
+
+prompt [SECTION_START:CEMLI_DB_VIEWS]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'VIEW'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 500;
+prompt [SECTION_END:CEMLI_DB_VIEWS]
+
+prompt [SECTION_START:CEMLI_DB_MVIEWS]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'MATERIALIZED VIEW'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_DB_MVIEWS]
+
+prompt [SECTION_START:CEMLI_DB_QUEUES]
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+from all_objects
+where object_type = 'QUEUE'
+and owner != 'APPS_MRC'
+and upper(object_name) like 'XX%'
+and rownum <= 100;
+prompt [SECTION_END:CEMLI_DB_QUEUES]
+
+-- CEMLI Extract: Custom Reporting Objects
+
+prompt [SECTION_START:CEMLI_XML_TEMPLATES]
+select template_code ||'|'|| template_name ||'|'|| default_output_type ||'|'|| to_char(creation_date, 'YYYY-MM-DD')
+from apps.xdo_templates_vl
+where template_code like 'XX%'
+and rownum <= 300;
+prompt [SECTION_END:CEMLI_XML_TEMPLATES]
+
+prompt [SECTION_START:CEMLI_DATA_DEFINITIONS]
+select data_source_code ||'|'|| data_source_name ||'|'|| data_source_status ||'|'|| to_char(creation_date, 'YYYY-MM-DD')
+from apps.xdo_ds_definitions_vl
+where data_source_code like 'XX%'
+and rownum <= 200;
+prompt [SECTION_END:CEMLI_DATA_DEFINITIONS]
+
+-- Data Reconciliator: Business Group and Organization Structure
+
+prompt [SECTION_START:DATA_BUSINESS_GROUPS]
+select otl.name ||'|'|| to_char(o.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(o.date_to, 'YYYY-MM-DD'), 'Active') ||'|'|| nvl(o3.org_information9, 'N/A') ||'|'|| nvl(o3.org_information10, 'N/A')
+from apps.hr_all_organization_units o, apps.hr_all_organization_units_tl otl, apps.hr_organization_information o3, apps.hr_organization_information o4
+where o.organization_id = otl.organization_id
+and o.organization_id = o3.organization_id
+and o.organization_id = o4.organization_id
+and o3.org_information_context = 'Business Group Information'
+and o4.org_information_context = 'CLASS'
+and o4.org_information1 = 'HR_BG'
+and o4.org_information2 = 'Y'
+and otl.language = 'US'
+and rownum <= 100;
+prompt [SECTION_END:DATA_BUSINESS_GROUPS]
+
+prompt [SECTION_START:DATA_SET_OF_BOOKS]
+select name ||'|'|| short_name ||'|'|| currency_code ||'|'|| accounted_period_type ||'|'|| nvl(latest_opened_period_name, 'N/A')
+from apps.gl_sets_of_books
+where rownum <= 100;
+prompt [SECTION_END:DATA_SET_OF_BOOKS]
+
+prompt [SECTION_START:DATA_LEGAL_ENTITIES]
+select xep.name ||'|'|| xep.legal_entity_identifier ||'|'|| nvl(hla.country, 'N/A') ||'|'|| to_char(xep.effective_from, 'YYYY-MM-DD')
+from apps.xle_entity_profiles xep, apps.hr_locations_all hla
+where xep.location_id = hla.location_id(+)
+and rownum <= 100;
+prompt [SECTION_END:DATA_LEGAL_ENTITIES]
+
+prompt [SECTION_START:DATA_OPERATING_UNITS]
+select hou.name ||'|'|| hou.short_code ||'|'|| to_char(hou.date_from, 'YYYY-MM-DD') ||'|'|| nvl(to_char(hou.date_to, 'YYYY-MM-DD'), 'Active')
+from apps.hr_operating_units hou
+where rownum <= 100;
+prompt [SECTION_END:DATA_OPERATING_UNITS]
+
+prompt [SECTION_START:DATA_INVENTORY_ORGS]
+select mp.organization_code ||'|'|| ood.organization_name ||'|'|| nvl(to_char(ood.date_from, 'YYYY-MM-DD'), 'N/A') ||'|'|| nvl(to_char(ood.disable_date, 'YYYY-MM-DD'), 'Active')
+from apps.mtl_parameters mp, apps.org_organization_definitions ood
+where mp.organization_id = ood.organization_id
+and rownum <= 200;
+prompt [SECTION_END:DATA_INVENTORY_ORGS]
+
+-- Data Reconciliator: Module-Specific Data Volumes
+
+prompt [SECTION_START:DATA_AP_VOLUMES]
+select 'AP_INVOICES' ||'|'|| count(*) from apps.ap_invoices_all union all
+select 'AP_SUPPLIERS' ||'|'|| count(*) from apps.ap_suppliers union all
+select 'AP_PAYMENTS' ||'|'|| count(*) from apps.ap_checks_all union all
+select 'AP_INVOICE_LINES' ||'|'|| count(*) from apps.ap_invoice_lines_all;
+prompt [SECTION_END:DATA_AP_VOLUMES]
+
+prompt [SECTION_START:DATA_AR_VOLUMES]
+select 'AR_CUSTOMERS' ||'|'|| count(*) from apps.hz_cust_accounts union all
+select 'AR_INVOICES' ||'|'|| count(*) from apps.ra_customer_trx_all union all
+select 'AR_RECEIPTS' ||'|'|| count(*) from apps.ar_cash_receipts_all union all
+select 'AR_INVOICE_LINES' ||'|'|| count(*) from apps.ra_customer_trx_lines_all;
+prompt [SECTION_END:DATA_AR_VOLUMES]
+
+prompt [SECTION_START:DATA_GL_VOLUMES]
+select 'GL_LEDGERS' ||'|'|| count(*) from apps.gl_ledgers union all
+select 'GL_JOURNALS' ||'|'|| count(*) from apps.gl_je_headers union all
+select 'GL_JOURNAL_LINES' ||'|'|| count(*) from apps.gl_je_lines union all
+select 'GL_ACCOUNTS' ||'|'|| count(*) from apps.gl_code_combinations;
+prompt [SECTION_END:DATA_GL_VOLUMES]
+
+prompt [SECTION_START:DATA_PO_VOLUMES]
+select 'PO_HEADERS' ||'|'|| count(*) from apps.po_headers_all union all
+select 'PO_LINES' ||'|'|| count(*) from apps.po_lines_all union all
+select 'PO_REQUISITIONS' ||'|'|| count(*) from apps.po_requisition_headers_all union all
+select 'PO_RECEIPTS' ||'|'|| count(*) from apps.rcv_shipment_headers;
+prompt [SECTION_END:DATA_PO_VOLUMES]
+
+prompt [SECTION_START:DATA_OM_VOLUMES]
+select 'OM_ORDERS' ||'|'|| count(*) from apps.oe_order_headers_all union all
+select 'OM_ORDER_LINES' ||'|'|| count(*) from apps.oe_order_lines_all union all
+select 'OM_DELIVERIES' ||'|'|| count(*) from apps.wsh_delivery_details;
+prompt [SECTION_END:DATA_OM_VOLUMES]
+
+prompt [SECTION_START:DATA_INV_VOLUMES]
+select 'INV_ITEMS' ||'|'|| count(*) from apps.mtl_system_items_b union all
+select 'INV_ONHAND' ||'|'|| count(*) from apps.mtl_onhand_quantities_detail union all
+select 'INV_TRANSACTIONS' ||'|'|| count(*) from apps.mtl_material_transactions;
+prompt [SECTION_END:DATA_INV_VOLUMES]
+
+prompt [SECTION_START:DATA_HR_VOLUMES]
+select 'HR_EMPLOYEES' ||'|'|| count(*) from apps.per_all_people_f union all
+select 'HR_ASSIGNMENTS' ||'|'|| count(*) from apps.per_all_assignments_f union all
+select 'HR_POSITIONS' ||'|'|| count(*) from apps.hr_all_positions_f;
+prompt [SECTION_END:DATA_HR_VOLUMES]
+
+prompt [SECTION_START:DATA_FA_VOLUMES]
+select 'FA_ASSET_BOOKS' ||'|'|| count(*) from apps.fa_book_controls union all
+select 'FA_ASSETS' ||'|'|| count(*) from apps.fa_additions_b union all
+select 'FA_ASSET_BOOKS_DETAIL' ||'|'|| count(*) from apps.fa_books;
+prompt [SECTION_END:DATA_FA_VOLUMES]
 
 
 exit;

@@ -598,6 +598,50 @@ def build_html(data):
     ad_files_by_type = safe_get(data, 'AD_FILES_BY_TYPE', [])
     patched_files_recent = safe_get(data, 'PATCHED_FILES_RECENT', [])
     
+    # CEMLI Extract: Custom Application Objects
+    cemli_custom_apps = safe_get(data, 'CEMLI_CUSTOM_APPLICATIONS', [])
+    cemli_custom_alerts = safe_get(data, 'CEMLI_CUSTOM_ALERTS', [])
+    cemli_conc_host = safe_get(data, 'CEMLI_CONC_PROG_HOST', [])
+    cemli_conc_java = safe_get(data, 'CEMLI_CONC_PROG_JAVA', [])
+    cemli_conc_reports = safe_get(data, 'CEMLI_CONC_PROG_REPORTS', [])
+    cemli_conc_sqlloader = safe_get(data, 'CEMLI_CONC_PROG_SQLLOADER', [])
+    cemli_conc_sqlplus = safe_get(data, 'CEMLI_CONC_PROG_SQLPLUS', [])
+    
+    # CEMLI Extract: Custom Database Objects
+    cemli_db_functions = safe_get(data, 'CEMLI_DB_FUNCTIONS', [])
+    cemli_db_indexes = safe_get(data, 'CEMLI_DB_INDEXES', [])
+    cemli_db_packages = safe_get(data, 'CEMLI_DB_PACKAGES', [])
+    cemli_db_procedures = safe_get(data, 'CEMLI_DB_PROCEDURES', [])
+    cemli_db_sequences = safe_get(data, 'CEMLI_DB_SEQUENCES', [])
+    cemli_db_synonyms = safe_get(data, 'CEMLI_DB_SYNONYMS', [])
+    cemli_db_tables = safe_get(data, 'CEMLI_DB_TABLES', [])
+    cemli_db_triggers = safe_get(data, 'CEMLI_DB_TRIGGERS', [])
+    cemli_db_types = safe_get(data, 'CEMLI_DB_TYPES', [])
+    cemli_db_views = safe_get(data, 'CEMLI_DB_VIEWS', [])
+    cemli_db_mviews = safe_get(data, 'CEMLI_DB_MVIEWS', [])
+    cemli_db_queues = safe_get(data, 'CEMLI_DB_QUEUES', [])
+    
+    # CEMLI Extract: Custom Reporting Objects
+    cemli_xml_templates = safe_get(data, 'CEMLI_XML_TEMPLATES', [])
+    cemli_data_definitions = safe_get(data, 'CEMLI_DATA_DEFINITIONS', [])
+    
+    # Data Reconciliator: Organization Structure
+    data_business_groups = safe_get(data, 'DATA_BUSINESS_GROUPS', [])
+    data_set_of_books = safe_get(data, 'DATA_SET_OF_BOOKS', [])
+    data_legal_entities = safe_get(data, 'DATA_LEGAL_ENTITIES', [])
+    data_operating_units = safe_get(data, 'DATA_OPERATING_UNITS', [])
+    data_inventory_orgs = safe_get(data, 'DATA_INVENTORY_ORGS', [])
+    
+    # Data Reconciliator: Module Data Volumes
+    data_ap_volumes = safe_get(data, 'DATA_AP_VOLUMES', [])
+    data_ar_volumes = safe_get(data, 'DATA_AR_VOLUMES', [])
+    data_gl_volumes = safe_get(data, 'DATA_GL_VOLUMES', [])
+    data_po_volumes = safe_get(data, 'DATA_PO_VOLUMES', [])
+    data_om_volumes = safe_get(data, 'DATA_OM_VOLUMES', [])
+    data_inv_volumes = safe_get(data, 'DATA_INV_VOLUMES', [])
+    data_hr_volumes = safe_get(data, 'DATA_HR_VOLUMES', [])
+    data_fa_volumes = safe_get(data, 'DATA_FA_VOLUMES', [])
+    
     # CEMLI Object Data (for drilldowns)
     custom_workflows = safe_get(data, 'CUSTOM_WORKFLOWS', [])
     xml_publisher = safe_get(data, 'XML_PUBLISHER_DELIVERY', [])
@@ -898,6 +942,40 @@ def build_html(data):
             <h3>Recently Patched Files (Last 90 Days)</h3>
             <p style="font-size:13px; color:#475569;">Files modified by recent patches that may impact custom code dependencies.</p>
             {render_drilldown_table("View Recently Patched Files", patched_files_recent, ["Application", "Filename", "Patch Name", "Applied Date"])}
+            
+            <h3>CEMLI: Custom Applications</h3>
+            <p style="font-size:13px; color:#475569;">Registered custom applications in FND_APPLICATION that require migration.</p>
+            {render_drilldown_table("View Custom Applications", cemli_custom_apps, ["App ID", "Application Name", "Short Name", "Base Path", "Created Date"])}
+            
+            <h3>CEMLI: Custom Alerts</h3>
+            {render_drilldown_table("View Custom Alerts", cemli_custom_alerts, ["Alert Name", "Application Name", "Alert Type", "Status"])}
+            
+            <h3>CEMLI: Concurrent Programs by Execution Type</h3>
+            <p style="font-size:13px; color:#475569;">Custom concurrent programs categorized by their execution method for targeted remediation.</p>
+            {render_drilldown_table("Host (Shell) Programs", cemli_conc_host, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
+            {render_drilldown_table("Java Programs", cemli_conc_java, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
+            {render_drilldown_table("Oracle Reports", cemli_conc_reports, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
+            {render_drilldown_table("SQL*Loader Programs", cemli_conc_sqlloader, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
+            {render_drilldown_table("SQL*Plus Programs", cemli_conc_sqlplus, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
+            
+            <h3>CEMLI: Custom Database Objects</h3>
+            <p style="font-size:13px; color:#475569;">Custom database objects (XX-prefixed) that require EBR enablement and validation.</p>
+            {render_drilldown_table("Custom Functions", cemli_db_functions, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Packages", cemli_db_packages, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Procedures", cemli_db_procedures, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Tables", cemli_db_tables, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Views", cemli_db_views, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Indexes", cemli_db_indexes, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Sequences", cemli_db_sequences, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Synonyms", cemli_db_synonyms, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Triggers", cemli_db_triggers, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Types", cemli_db_types, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Materialized Views", cemli_db_mviews, ["Object Name", "Type", "Owner", "Status"])}
+            {render_drilldown_table("Custom Queues", cemli_db_queues, ["Object Name", "Type", "Owner", "Status"])}
+            
+            <h3>CEMLI: Custom Reporting Objects</h3>
+            {render_drilldown_table("XML Publisher Templates", cemli_xml_templates, ["Template Code", "Template Name", "Output Type", "Created Date"])}
+            {render_drilldown_table("Data Definitions", cemli_data_definitions, ["Data Source Code", "Data Source Name", "Status", "Created Date"])}
         </div>
 
         <div id="topology" class="section">
@@ -1158,6 +1236,45 @@ def build_html(data):
             <h3>Active Users with Responsibilities</h3>
             <p style="font-size:13px; color:#475569;">Mapping of active users to their assigned responsibilities for security and access control analysis during upgrade.</p>
             {render_drilldown_table("View Active Users with Responsibilities (up to 1000)", active_users_with_resp, ["User Name", "Responsibility Name"])}
+            
+            <h3>Organization Structure: Business Groups</h3>
+            {render_table(data_business_groups, ["Business Group Name", "Date From", "Date To", "Legislation Code", "Currency Code"])}
+            
+            <h3>Organization Structure: Set of Books / Ledgers</h3>
+            {render_table(data_set_of_books, ["Name", "Short Name", "Currency Code", "Period Type", "Latest Opened Period"])}
+            
+            <h3>Organization Structure: Legal Entities</h3>
+            {render_table(data_legal_entities, ["Legal Entity Name", "LE Identifier", "Country", "Effective From"])}
+            
+            <h3>Organization Structure: Operating Units</h3>
+            {render_table(data_operating_units, ["Operating Unit Name", "Short Code", "Date From", "Date To"])}
+            
+            <h3>Organization Structure: Inventory Organizations</h3>
+            {render_table(data_inventory_orgs, ["Org Code", "Organization Name", "Date From", "Disable Date"])}
+            
+            <h3>Module Data Volumes: Payables (AP)</h3>
+            {render_table(data_ap_volumes, ["AP Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Receivables (AR)</h3>
+            {render_table(data_ar_volumes, ["AR Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: General Ledger (GL)</h3>
+            {render_table(data_gl_volumes, ["GL Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Purchasing (PO)</h3>
+            {render_table(data_po_volumes, ["PO Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Order Management (OM)</h3>
+            {render_table(data_om_volumes, ["OM Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Inventory (INV)</h3>
+            {render_table(data_inv_volumes, ["INV Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Human Resources (HR)</h3>
+            {render_table(data_hr_volumes, ["HR Object", "Record Count"])}
+            
+            <h3>Module Data Volumes: Fixed Assets (FA)</h3>
+            {render_table(data_fa_volumes, ["FA Object", "Record Count"])}
         </div>
 
         <div id="risks" class="section">
