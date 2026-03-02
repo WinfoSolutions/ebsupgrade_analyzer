@@ -105,12 +105,13 @@ def determine_integrations(profiles, apex_ords_data):
 
     for row in profiles:
         if len(row) < 2: continue
-        name, value = row[0].upper(), row[1]
+        name = row[0].upper() if row[0] else ''
+        value = row[1] if row[1] else ''
         if not value.strip(): continue
 
         if name == 'APPS_FRAMEWORK_AGENT': fwk_agent = value
         if name == 'APPS_AUTH_AGENT': auth_agent = value
-        if name == 'APPS_SSO': sso_mode = value.upper()  # Track SSO mode - SSWA means standard login
+        if name == 'APPS_SSO': sso_mode = value.upper() if value else ''  # Track SSO mode - SSWA means standard login
         
         # APEX detection - only FND_APEX_URL with actual URL value
         if name == 'FND_APEX_URL':
@@ -138,7 +139,8 @@ def determine_integrations(profiles, apex_ords_data):
         
         # OBIEE detection - specific profiles
         if name in ['FND_OBIEE_URL', 'HRI_IMPL_OBIEE']:
-            if value != 'NOT_DEFINED' and value.upper() not in ['N', 'NO']:
+            value_upper = value.upper() if value else ''
+            if value != 'NOT_DEFINED' and value_upper not in ['N', 'NO']:
                 integ['OBIEE'] = {'status': 'Active', 'desc': f'OBIEE/OAC configured via {name}={value}.', 'color': '--primary-blue', 'roadmap': 'No DB structural impact, but EBS Auth integration to OAS/OAC must be tested against new WLS cookies.'}
         
         # ENDECA detection - profiles that indicate actual Endeca usage (not just existence of profile)
@@ -148,7 +150,8 @@ def determine_integrations(profiles, apex_ords_data):
             'ONT_ENDECA_DISPLAY_CURRENCY', 'ONT_ENDECA_ADDL_INFO', 'AHL_ENDECA_HISTORICAL_TRANSACTION',
             'CS_ENDECA_SR_LOAD_START_DATE', 'USE_WO_ORG_FOR_EAM_ENDECA_SECURITY'
         ]
-        if name in endeca_active_profiles and value != 'NOT_DEFINED' and value.upper() not in ['N', 'NO', 'NONE']:
+        value_upper = value.upper() if value else ''
+        if name in endeca_active_profiles and value != 'NOT_DEFINED' and value_upper not in ['N', 'NO', 'NONE']:
             endeca_active_count += 1
         
         # VERTEX detection
@@ -187,8 +190,8 @@ def determine_integrations(profiles, apex_ords_data):
     if auth_agent and auth_agent != 'NOT_DEFINED' and fwk_agent and auth_agent != fwk_agent:
         integ['SSO'] = {'status': 'Active', 'desc': 'External SSO detected via disjointed Auth & Framework Agents.', 'color': '--warning-amber', 'roadmap': 'Verify SSO Trust architecture prior to upgrading.'}
     
-    # Override SSO if mode is SSWA (standard EBS login, not OAM)
-    if sso_mode == 'SSWA' and integ['SSO']['status'] != 'Active':
+    # Set SSO to Standard only if it's still Disabled and APPS_SSO=SSWA (don't override Active or other states)
+    if sso_mode == 'SSWA' and integ['SSO']['status'] == 'Disabled':
         integ['SSO'] = {'status': 'Standard', 'desc': 'APPS_SSO=SSWA indicates standard EBS Self-Service login. No external SSO/OAM integration.', 'color': '--border-grey', 'roadmap': 'Standard FND User migration with no SSO dependencies.'}
 
     return integ
