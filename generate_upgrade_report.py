@@ -156,7 +156,11 @@ def determine_integrations(profiles, apex_ords_data):
             if value != 'NOT_DEFINED':
                 integ['GRC'] = {'status': 'Active', 'desc': 'Oracle GRC (Governance Risk Compliance).', 'color': '--primary-blue', 'roadmap': 'Ensure AACG connectors map correctly against target OS versions.'}
         
-        if 'SSO' in name or 'OAM' in name or name in ['APPS_AUTH_AGENT', 'FND_SSO_COOKIE_DOMAIN']:
+        sso_profiles = [
+            'APPS_AUTH_AGENT', 'FND_SSO_COOKIE_DOMAIN', 'APPS_SSO_COOKIE_DOMAIN',
+            'APPS_SSO_PROFILE', 'APPS_SSO_AUTO_REDIRECT', 'APPS_OAM_APPL_SERVER_URL'
+        ]
+        if name in sso_profiles:
             if value == 'NOT_DEFINED':
                  if integ['SSO']['status'] == 'Disabled': 
                       integ['SSO'] = {'status': 'Not Configured', 'desc': f'SSO Profile ({name}) is present but blank. Standard FND login assumed.', 'color': '--border-grey', 'roadmap': 'Standard FND User migration.'}
@@ -505,7 +509,11 @@ def build_html(data):
     active_users = safe_get(data, 'EBS_ACTIVE_USERS', [['0']])[0][0]
     
     os_info = {row[0]: row[1] if len(row)>1 else '' for row in safe_get(data, 'OS_SERVER_INFO', [])}
-    all_nodes_context = safe_get(data, 'ALL_NODES_CONTEXT', [])
+    ctx_dirs = safe_get(data, 'CTX_DIRECTORIES', [])
+    ctx_ports = safe_get(data, 'CTX_PORTS_SECURITY', [])
+    ctx_dbnet = safe_get(data, 'CTX_DB_NETWORKING', [])
+    ctx_jvm = safe_get(data, 'CTX_JVM_SERVICES', [])
+    
     db_params = safe_get(data, 'DB_PARAMETERS', [])
     
     custom_schemas_data = safe_get(data, 'EBS_CUSTOM_SCHEMAS', [])
@@ -639,10 +647,17 @@ def build_html(data):
         .cd-fill {{ height: 100%; border-radius: 6px; transition: width 1s; }}
         .cd-val {{ width: 30px; text-align: right; font-weight: 700; color: #fff; }}
 
-        
         .section {{ background:var(--card-bg); border-radius:12px; padding:35px; margin-bottom:40px; box-shadow:0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }}
-        .section-header {{ display: flex; align-items: center; border-bottom:2px solid var(--light-blue); padding-bottom:15px; margin-bottom: 25px; }}
-        .section-header h2 {{ color:var(--primary-blue); margin: 0; font-size: 22px; }}
+        .section-header {{ display: flex; align-items: center; border-bottom:2px solid var(--light-blue); padding-bottom:15px; margin-bottom: 25px; cursor: pointer; }}
+        .section-header h2 {{ color:var(--primary-blue); margin: 0; font-size: 22px; width: 100%; }}
+        .section-header::after {{ content: '▼'; font-size: 14px; color: var(--primary-blue); margin-left: auto; transition: transform 0.3s; }}
+        .section.collapsed .section-header::after {{ transform: rotate(-90deg); }}
+        .section.collapsed .section-content {{ display: none; }}
+        
+        details {{ background-color: #F8FAFC; border: 1px solid var(--border-grey); padding: 10px 15px; border-radius: 6px; margin-top: 15px; cursor: pointer; transition: all 0.2s; }}
+        details:hover {{ border-color: #cbd5e1; }}
+        summary {{ font-weight: 600; color: var(--primary-blue); font-size: 15px; outline: none; display: flex; align-items: center; }}
+        details[open] summary {{ border-bottom: 1px solid var(--border-grey); padding-bottom: 10px; margin-bottom: 10px; }}
         .section h3 {{ color:var(--primary-blue); margin-top:35px; font-size: 18px; display: flex; align-items: center; }}
         
         table {{ width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }}
@@ -685,16 +700,17 @@ def build_html(data):
         <a href="#roadmap">3. Upgrade Roadmap</a>
         <a href="#effort">4. Effort Estimation</a>
         <a href="#cemli">5. CEMLI / Customization Impact</a>
-        <a href="#topology">6. System Topology</a>
-        <a href="#integrations">7. Enterprise Integrations</a>
-        <a href="#database">8. Database Analysis</a>
-        <a href="#workload">9. Database Workloads / HA</a>
-        <a href="#sizing">10. Target Sizing & Capacity</a>
-        <a href="#techstack">11. App TechStack & Security</a>
-        <a href="#workflow">12. Workflow & Mailer Footprint</a>
-        <a href="#functional">13. Functional Data Volumes</a>
-        <a href="#risks">14. Risk Register</a>
+        <a href="#topology">6. Physical Architecture</a>
+        <a href="#wls_sizing">7. WLS Sizing & Context Services</a>
+        <a href="#integrations">8. Enterprise Integrations</a>
+        <a href="#database">9. Database Analysis</a>
+        <a href="#workload">10. Performance & Processing</a>
+        <a href="#workflow">11. Fusion Middleware Components</a>
+        <a href="#functional">12. Functional Data Volumes</a>
+        <a href="#risks">13. Risk Register</a>
     </div>
+
+    <a href="#" id="backToTop" title="Back to Top" style="display:none; position:fixed; bottom:30px; right:30px; background:var(--primary-blue); color:white; padding:15px; border-radius:50%; text-decoration:none; font-weight:bold; z-index:999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">↑</a>
 
     <div class="main-content">
         <!-- Dashboard Summary -->
@@ -856,6 +872,43 @@ def build_html(data):
             {render_drilldown_table("BIP / XML Publisher Templates", xml_publisher, ["XML Template Code", "Output Type"])}
         </div>
 
+        <div id="topology" class="section">
+            <div class="section-header">
+                <h2>Physical Topology & Contexts</h2>
+            </div>
+            
+            <h3>Application Node Definitions</h3>
+            {render_table(nodes, ["Registrar Hostname", "Batch/Concurrent", "Forms Service", "Web Service", "Data Node", "Current State"])}
+            
+        </div>
+
+        <div id="infra" class="section">
+            <div class="section-header">
+                <h2>Infrastructure Component Counts</h2>
+            </div>
+            {render_drilldown_table("Scheduler Jobs, Materialized Views & Partitions", safe_get(data, 'INFRA_OBJECTS', []), ["Infrastructure Component", "Definition Count"])}
+        </div>
+        
+        <div id="wls_sizing" class="section">
+            <div class="section-header">
+                <h2>WLS Architecture Sizing & Java Context Parameters</h2>
+            </div>
+            <p>Target WebLogic domain deployment footprint extracted deeply from FND_OAM_CONTEXT_FILES across all nodes.</p>
+            
+            <h3>Application File Systems (Mount Directories)</h3>
+            {render_table(ctx_dirs, ["Physical Node", "EBS File System Variable", "Target Mount / Path Location"])}
+            
+            <h3>Target JVM Services & Memory Allocations</h3>
+            <p style="font-size:13px; color:#475569;">Metrics necessary to calculate required Managed Servers and Heap Sizing per Node (oacore, forms, oafm).</p>
+            {render_table(ctx_jvm, ["Physical Node", "WebLogic / Form Server Service", "Allocated NPROCS (Processes)", "Java JVM Start Parameters Options"])}
+            
+            <h3>Ports, Keystores & Security Connectors</h3>
+            {render_table(ctx_ports, ["Physical Node", "Configuration Property Name", "Value Resolved"])}
+            
+            <h3>Database Networking & JDBC Profiles</h3>
+            {render_table(ctx_dbnet, ["Physical Node", "Network Property Name", "JDBC Description or URL Profile"])}
+        </div>
+
         <div id="integrations" class="section">
             <div class="section-header">
                 <h2>Enterprise Peripheral Integrations</h2>
@@ -888,41 +941,6 @@ def build_html(data):
 
         <div id="database" class="section">
             <div class="section-header">
-                <h2>Database Deep-Dive Architecture</h2>
-            </div>
-            <h3>Database Storage Allocations (GB)</h3>
-            <p style="font-size:13px; color:#475569;">Storage modeling constraints for Exadata or Cloud deployments.</p>
-            {render_table([['Allocated & Used', db_usage_free[0] + ' GB'], ['Free Available', db_usage_free[1] + ' GB']] if len(db_usage_free)>1 else [], ["Storage State", "Volume"])}
-        </div>
-
-        <div id="topology" class="section">
-            <div class="section-header">
-                <h2>Physical Topology & Contexts</h2>
-            </div>
-            
-            <h3>Application Node Definitions</h3>
-            {render_table(nodes, ["Registrar Hostname", "Batch/Concurrent", "Forms Service", "Web Service", "Data Node", "Current State"])}
-            
-            <h3>Global Applications Context Framework (Sourced from FND_OAM_CONTEXT_FILES)</h3>
-            """
-    
-    if len(all_nodes_context) > 0 and all_nodes_context[0][0] != 'N/A':
-        # Split Contexts into Topology mapping
-        topology_rows = []
-        for c in all_nodes_context:
-            if len(c) > 5:
-                entry = f"{c[1]}.{c[2]}" if c[1] and c[2] else c[1]
-                topology_rows.append([c[0], entry, c[3], c[4], c[5]])
-                
-        html += render_table(topology_rows, ["Node Name", "Web Entry Host", "Active Port", "Admin Server", "Shared APPL_TOP"])
-    else:
-        html += "<p style='color:var(--danger-red); font-size:14px; font-family:monospace; padding:15px; background:#FEF2F2; border-radius:5px;'>[!] No Context Files currently registered in FND_OAM_CONTEXT_FILES.</p>"
-
-    html += f"""
-        </div>
-
-        <div id="database" class="section">
-            <div class="section-header">
                 <h2>Database Deep-Dive Analysis</h2>
             </div>
             <p>Comprehensive database analysis including character set, tablespace distribution, and database features usage.</p>
@@ -939,11 +957,11 @@ def build_html(data):
             <h3>Archive Mode & Logging</h3>
             {render_table(safe_get(data, 'DB_ARCHIVE_MODE', []), ["Log Mode", "Force Logging", "Supplemental Log"])}
             
-            <h3>Database Features in Use</h3>
-            {render_table(safe_get(data, 'DB_FEATURES_USED', []), ["Feature Name", "Detected Usages", "Currently Used"])}
+            <h3>Total EBS Customization Catalog</h3>
+            {render_drilldown_table("View Core Custom Database Extensions", safe_get(data, 'EBS_CUSTOM_OBJECTS', []), ["Custom Schema Owner", "Database Object Type", "Quantity Defined"])}
             
             <h3>Invalid Objects by Owner/Type</h3>
-            {render_table(safe_get(data, 'INVALID_OBJECTS_DETAIL', []), ["Schema Owner", "Object Type", "Count"])}
+            {render_drilldown_table("View Invalid Schema Objects", safe_get(data, 'INVALID_OBJECTS_DETAIL', []), ["Schema Owner", "Object Name", "Object Type", "Status", "Last DDL Timestamp"])}
             
             <h3>AD Registered Schemas</h3>
             <p style="font-size:13px; color:#475569;">Schemas registered with Oracle AD utilities. Custom schemas (XX*) must be registered for online patching compatibility.</p>
@@ -965,7 +983,7 @@ def build_html(data):
             {render_table(pcp_managers, ["Queue Routing ID", "Primary Node", "Failover Node"])}
             
             <h3>Concurrent Manager Queue Status Matrix</h3>
-            {render_table(conc_mgr_status, ["Queue ID", "Queue Focus", "User Name", "Target Node", "Max Allowed", "Running", "Run Tasks", "Pending Tasks", "Control State"])}
+            {render_table(conc_mgr_status, ["Queue ID", "Short Name", "Manager Name", "Target Node", "Max Allowed", "Running", "Run Tasks", "Pending Tasks", "Control State"])}
             
             <h3>Volume of Daily Concurrent Requests for Last Month</h3>
             {render_table(daily_conc_reqs, ["Execution Date", "Total Job Count Raised"])}
@@ -1057,7 +1075,7 @@ def build_html(data):
             
             <h3>DMZ (External Node) Trust Modeling</h3>
             <p style="font-size:13px; color:#475569;">Validates whether Internet-facing web servers have appropriate NODE_TRUST_LEVEL limitations mapped against restricted responsibilities (e.g. iSupplier, iRecruitment).</p>
-            {render_table(dmz_nodes, ["Profile Value", "FND System Profile"])}
+            {render_table(dmz_nodes, ["Profile Security Output", "FND System Profile Target", "Physical Node / Responsibility Resolved"])}
         </div>
         
         <div id="workflow" class="section">
@@ -1159,68 +1177,64 @@ def build_html(data):
             </div>
         </div>
 
-        <div id="risks" class="section">
-            <div class="section-header">
-                <h2>Risk Register & Mitigation Plan</h2>
-            </div>
-            <p>Based on the automated analysis, the following risks have been identified that may impact the upgrade project timeline or success.</p>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Risk ID</th>
-                        <th>Category</th>
-                        <th>Risk Description</th>
-                        <th>Severity</th>
-                        <th>Business Impact</th>
-                        <th>Mitigation Strategy</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(f'''<tr>
-                        <td><b>{r['id']}</b></td>
-                        <td>{r['category']}</td>
-                        <td>{r['risk']}</td>
-                        <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; background: {'#FEE2E2' if r['severity']=='Critical' else '#FEF3C7' if r['severity']=='High' else '#DBEAFE' if r['severity']=='Medium' else '#D1FAE5'}; color: {'#991B1B' if r['severity']=='Critical' else '#92400E' if r['severity']=='High' else '#1E40AF' if r['severity']=='Medium' else '#065F46'};">{r['severity']}</span></td>
-                        <td>{r['impact']}</td>
-                        <td>{r['mitigation']}</td>
-                    </tr>''' for r in risk_register)}
-                </tbody>
-            </table>
-            
-            <h3 style="margin-top: 30px;">Recommended Actions Before Upgrade</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div style="background: #F0FDF4; border: 1px solid #86EFAC; padding: 15px; border-radius: 8px;">
-                    <b style="color: #166534;">✓ Pre-Upgrade Preparation</b>
-                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #166534; font-size: 14px;">
-                        <li>Run Oracle EBS Upgrade Analyzer (RUP)</li>
-                        <li>Run Database Upgrade Analyzer for 19c</li>
-                        <li>Generate ETCC compliance report</li>
-                        <li>Document all custom code inventory</li>
-                    </ul>
-                </div>
-                <div style="background: #FEF3C7; border: 1px solid #FCD34D; padding: 15px; border-radius: 8px;">
-                    <b style="color: #92400E;">⚠ Technical Remediation</b>
-                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #92400E; font-size: 14px;">
-                        <li>Resolve all invalid objects</li>
-                        <li>Enable edition-based custom schemas</li>
-                        <li>Convert UTL_FILE_DIR to directories</li>
-                        <li>Test all database links connectivity</li>
-                    </ul>
-                </div>
-                <div style="background: #DBEAFE; border: 1px solid #93C5FD; padding: 15px; border-radius: 8px;">
-                    <b style="color: #1E40AF;">📋 Planning & Governance</b>
-                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #1E40AF; font-size: 14px;">
-                        <li>Define cutover window requirements</li>
-                        <li>Plan minimum 3 rehearsal cycles</li>
-                        <li>Establish rollback procedures</li>
-                        <li>Coordinate with all integration teams</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
     </div>
+    
+    <script>
+        // ScrollSpy logic to highlight navigation sidebar
+        document.addEventListener('DOMContentLoaded', function() {{
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav-sidebar a');
+            const backToTop = document.getElementById('backToTop');
+            
+            window.addEventListener('scroll', () => {{
+                let current = '';
+                sections.forEach(section => {{
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 100) {{
+                        current = section.getAttribute('id');
+                    }}
+                }});
+
+                navLinks.forEach(link => {{
+                    link.style.backgroundColor = '';
+                    link.style.color = '#555';
+                    link.style.borderLeftColor = 'transparent';
+                    if (link.getAttribute('href').includes(current) && current !== '') {{
+                        link.style.backgroundColor = 'var(--light-blue)';
+                        link.style.color = 'var(--primary-blue)';
+                        link.style.borderLeftColor = 'var(--primary-blue)';
+                    }}
+                }});
+                
+                if (window.scrollY > 400) {{
+                    backToTop.style.display = 'flex';
+                }} else {{
+                    backToTop.style.display = 'none';
+                }}
+            }});
+
+            // Global Subsection Collapsibility
+            const subheaders = document.querySelectorAll('.section h3');
+            subheaders.forEach(h3 => {{
+                h3.style.cursor = 'pointer';
+                h3.innerHTML = '▼ ' + h3.innerHTML;
+                h3.addEventListener('click', function() {{
+                    const isCollapsed = this.innerHTML.startsWith('▶');
+                    this.innerHTML = isCollapsed ? this.innerHTML.replace('▶', '▼') : this.innerHTML.replace('▼', '▶');
+                    
+                    let nextElem = this.nextElementSibling;
+                    while(nextElem && !['H3', 'H2'].includes(nextElem.tagName) && !nextElem.classList.contains('section-header')) {{
+                        if (isCollapsed) {{
+                            nextElem.style.display = '';
+                        }} else {{
+                            nextElem.style.display = 'none';
+                        }}
+                        nextElem = nextElem.nextElementSibling;
+                    }}
+                }});
+            }});
+        }});
+    </script>
 </body>
 </html>
 """

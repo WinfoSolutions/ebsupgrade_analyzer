@@ -109,32 +109,106 @@ from apps.fnd_nodes
 where node_name <> 'AUTHENTICATION';
 prompt [SECTION_END:EBS_NODES]
 
-prompt [SECTION_START:ALL_NODES_CONTEXT]
-select n.node_name ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_webentryhost[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_webentrydomain[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_active_webport[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_adminserver[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_shared_file_system[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_atg_version[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_tools_version[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_ohs_version[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_jdktarget[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_custom_file_top[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_adkeystore[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_truststore[^>]*>([^<]+)', 1, 1, 'i', 1) ||'|'||
-       REGEXP_SUBSTR(c.text, '<s_web_ssl_directory[^>]*>([^<]+)', 1, 1, 'i', 1)
-from apps.fnd_nodes n,
-     (select node_name, text from apps.fnd_oam_context_files 
-      where (node_name, last_update_date) in 
-          (select node_name, max(last_update_date) 
-           from apps.fnd_oam_context_files 
-           where status not in ('H') 
-           group by node_name)
-     ) c
-where lower(n.node_name) = lower(c.node_name)
-and n.node_name <> 'AUTHENTICATION';
-prompt [SECTION_END:ALL_NODES_CONTEXT]
+prompt [SECTION_START:CTX_DIRECTORIES]
+select * from (
+with ctx as (
+    select n.node_name, xmltype(c.text) as xml_doc
+    from apps.fnd_nodes n,
+         (select node_name, text from apps.fnd_oam_context_files 
+          where (node_name, last_update_date) in 
+              (select node_name, max(last_update_date) 
+               from apps.fnd_oam_context_files 
+               where status not in ('H') 
+               group by node_name)
+         ) c
+    where lower(n.node_name) = lower(c.node_name)
+    and n.node_name <> 'AUTHENTICATION'
+)
+select node_name ||'|appl_top|'|| EXTRACTVALUE(xml_doc, '//s_appl_top') from ctx union all
+select node_name ||'|common_top|'|| EXTRACTVALUE(xml_doc, '//s_com') from ctx union all
+select node_name ||'|10.1.2_home|'|| EXTRACTVALUE(xml_doc, '//s_tools_oh') from ctx union all
+select node_name ||'|instance_top|'|| EXTRACTVALUE(xml_doc, '//s_inst_top') from ctx union all
+select node_name ||'|shared_file_system|'|| EXTRACTVALUE(xml_doc, '//s_shared_file_system') from ctx union all
+select node_name ||'|jws_top|'|| EXTRACTVALUE(xml_doc, '//s_jws_top') from ctx union all
+select node_name ||'|ebs_central_inventory|'|| EXTRACTVALUE(xml_doc, '//s_ebs_central_inventory') from ctx union all
+select node_name ||'|adconfig_path|'|| EXTRACTVALUE(xml_doc, '//adconfig') from ctx
+);
+prompt [SECTION_END:CTX_DIRECTORIES]
+
+prompt [SECTION_START:CTX_PORTS_SECURITY]
+select * from (
+with ctx as (
+    select n.node_name, xmltype(c.text) as xml_doc
+    from apps.fnd_nodes n,
+         (select node_name, text from apps.fnd_oam_context_files 
+          where (node_name, last_update_date) in 
+              (select node_name, max(last_update_date) 
+               from apps.fnd_oam_context_files 
+               where status not in ('H') 
+               group by node_name)
+         ) c
+    where lower(n.node_name) = lower(c.node_name)
+    and n.node_name <> 'AUTHENTICATION'
+)
+select node_name ||'|port_pool|'|| EXTRACTVALUE(xml_doc, '//s_port_pool') from ctx union all
+select node_name ||'|sslterminator|'|| EXTRACTVALUE(xml_doc, '//s_sslterminator') from ctx union all
+select node_name ||'|session_timeout|'|| EXTRACTVALUE(xml_doc, '//s_sesstimeout') from ctx union all
+select node_name ||'|ssl_keystore|'|| EXTRACTVALUE(xml_doc, '//s_adkeystore') from ctx union all
+select node_name ||'|scan_name|'|| EXTRACTVALUE(xml_doc, '//s_scan_name') from ctx union all
+select node_name ||'|scan_port|'|| EXTRACTVALUE(xml_doc, '//s_scan_port') from ctx union all
+select node_name ||'|appserverid_authentication|'|| EXTRACTVALUE(xml_doc, '//s_appserverid_authentication') from ctx union all
+select node_name ||'|java_object_cache_port|'|| EXTRACTVALUE(xml_doc, '//s_java_object_cache_port') from ctx
+);
+prompt [SECTION_END:CTX_PORTS_SECURITY]
+
+prompt [SECTION_START:CTX_DB_NETWORKING]
+select * from (
+with ctx as (
+    select n.node_name, xmltype(c.text) as xml_doc
+    from apps.fnd_nodes n,
+         (select node_name, text from apps.fnd_oam_context_files 
+          where (node_name, last_update_date) in 
+              (select node_name, max(last_update_date) 
+               from apps.fnd_oam_context_files 
+               where status not in ('H') 
+               group by node_name)
+         ) c
+    where lower(n.node_name) = lower(c.node_name)
+    and n.node_name <> 'AUTHENTICATION'
+)
+select node_name ||'|jdbc_url|'|| EXTRACTVALUE(xml_doc, '//s_apps_jdbc_connect_descriptor') from ctx union all
+select node_name ||'|dbc_file|'|| EXTRACTVALUE(xml_doc, '//s_dbcset') from ctx
+);
+prompt [SECTION_END:CTX_DB_NETWORKING]
+
+prompt [SECTION_START:CTX_JVM_SERVICES]
+select * from (
+with ctx as (
+    select n.node_name, xmltype(c.text) as xml_doc
+    from apps.fnd_nodes n,
+         (select node_name, text from apps.fnd_oam_context_files 
+          where (node_name, last_update_date) in 
+              (select node_name, max(last_update_date) 
+               from apps.fnd_oam_context_files 
+               where status not in ('H') 
+               group by node_name)
+         ) c
+    where lower(n.node_name) = lower(c.node_name)
+    and n.node_name <> 'AUTHENTICATION'
+)
+select node_name ||'|oacore|'|| EXTRACTVALUE(xml_doc, '//s_oacore_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oacore_jvm_start_options') from ctx
+union all
+select node_name ||'|oafm|'|| EXTRACTVALUE(xml_doc, '//s_oafm_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oafm_jvm_start_options') from ctx
+union all
+select node_name ||'|forms|'|| EXTRACTVALUE(xml_doc, '//s_forms_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_forms_jvm_start_options') from ctx
+union all
+select node_name ||'|oaea|'|| EXTRACTVALUE(xml_doc, '//s_oaea_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oaea_jvm_start_options') from ctx
+union all
+select node_name ||'|oa_workflow_server|'|| EXTRACTVALUE(xml_doc, '//s_oaworkflow_nprocs') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oaworkflow_jvm_start_options') from ctx
+union all
+select node_name ||'|oxta|'|| EXTRACTVALUE(xml_doc, '//load_oxta_servlet') ||'|'|| EXTRACTVALUE(xml_doc, '//s_oxta_proxy_url') from ctx
+);
+prompt [SECTION_END:CTX_JVM_SERVICES]
 
 prompt [SECTION_START:EBS_INTEGRATIONS_PROFILES]
 SELECT fo.profile_option_name ||'|'|| NVL(fv.profile_option_value, 'NOT_DEFINED')
@@ -143,12 +217,11 @@ WHERE fo.profile_option_id = fv.profile_option_id(+)
 AND fv.level_value(+) = 0
 AND (
     fo.profile_option_name LIKE '%APEX%' OR
-    fo.profile_option_name LIKE '%SSO%' OR
-    fo.profile_option_name LIKE '%OAM%' OR
-    fo.profile_option_name LIKE '%ECC%' OR
-    fo.profile_option_name LIKE '%ENDECA%' OR
     fo.profile_option_name LIKE '%SOA%' OR
+    fo.profile_option_name LIKE '%ISG%' OR
+    fo.profile_option_name LIKE '%REST%' OR
     fo.profile_option_name LIKE '%OBIEE%' OR
+    fo.profile_option_name LIKE '%OAC%' OR
     fo.profile_option_name LIKE '%VERTEX%' OR
     fo.profile_option_name LIKE '%AVALARA%' OR
     fo.profile_option_name LIKE '%KBACE%' OR
@@ -160,9 +233,11 @@ AND (
         'APPS_SERVLET_AGENT',
         'ICX_FORMS_LAUNCHER', 
         'ICX_SESSION_TIMEOUT',
+        'APPS_SSO_PROFILE',
         'FND_SSO_COOKIE_DOMAIN',
         'APPS_SSO_COOKIE_DOMAIN',
-        'APPS_SSO_PROFILE',
+        'APPS_SSO_AUTO_REDIRECT',
+        'APPS_OAM_APPL_SERVER_URL',
         'FND_DIAGNOSTICS',
         'GUEST_USER_PWD',
         'APPLICATIONS_HOME_PAGE',
@@ -171,7 +246,10 @@ AND (
         'FND_WEB_SERVER',
         'FND_APEX_URL',
         'FND_EXTERNAL_ADF_URL',
-        'INV_EBI_SERVER_URL'
+        'INV_EBI_SERVER_URL',
+        'OAM_DIAG_COMMUNITY_URL',
+        'ECC_URL',
+        'ECC_EBS_AUTH_COOKIE'
     )
 );
 prompt [SECTION_END:EBS_INTEGRATIONS_PROFILES]
@@ -363,17 +441,17 @@ from dba_feature_usage_statistics where currently_used = 'TRUE' and rownum <= 50
 prompt [SECTION_END:DB_FEATURE_USAGE]
 
 prompt [SECTION_START:CUSTOM_FND_OBJECTS]
-select 'MENUS' ||'|'|| menu_name from apps.fnd_menus where menu_name like 'XX%'
+select 'MENUS' ||'|'|| user_menu_name from apps.fnd_menus_vl where menu_name like 'XX%'
 union all
-select 'RESPONSIBILITIES' ||'|'|| responsibility_key from apps.fnd_responsibility where responsibility_key like 'XX%'
+select 'RESPONSIBILITIES' ||'|'|| responsibility_name from apps.fnd_responsibility_vl where responsibility_key like 'XX%'
 union all
-select 'FUNCTIONS' ||'|'|| function_name from apps.fnd_form_functions where function_name like 'XX%'
+select 'FUNCTIONS' ||'|'|| user_function_name from apps.fnd_form_functions_vl where function_name like 'XX%'
 union all
-select 'LOOKUPS' ||'|'|| lookup_type from apps.fnd_lookup_types where lookup_type like 'XX%'
+select 'LOOKUPS' ||'|'|| meaning from apps.fnd_lookup_types_vl where lookup_type like 'XX%'
 union all
-select 'VALUE_SETS' ||'|'|| flex_value_set_name from apps.fnd_flex_value_sets where flex_value_set_name like 'XX%'
+select 'VALUE_SETS' ||'|'|| description from apps.fnd_flex_value_sets where flex_value_set_name like 'XX%'
 union all
-select 'DFFS' ||'|'|| descriptive_flexfield_name from apps.fnd_descriptive_flexs where descriptive_flexfield_name like 'XX%';
+select 'DFFS' ||'|'|| title from apps.fnd_descriptive_flexs_vl where descriptive_flexfield_name like 'XX%';
 prompt [SECTION_END:CUSTOM_FND_OBJECTS]
 
 prompt [SECTION_START:INFRA_OBJECTS]
@@ -425,9 +503,12 @@ from dba_role_privs where grantee in ('APPS', 'APPLSYS');
 prompt [SECTION_END:DB_ROLE_PRIVS]
 
 prompt [SECTION_START:EBS_DMZ_EXTERNAL_NODES]
-select fv.profile_option_value ||'|'|| fp.profile_option_name
-from apps.fnd_profile_option_values fv, apps.fnd_profile_options fp
-where fv.profile_option_id = fp.profile_option_id and fp.profile_option_name in ('NODE_TRUST_LEVEL', 'RESP_TRUST_LEVEL');
+select fv.profile_option_value ||'|'|| fp.profile_option_name ||'|'|| nvl(n.node_name, nvl(r.responsibility_name, fv.level_value))
+from apps.fnd_profile_option_values fv, apps.fnd_profile_options fp, apps.fnd_nodes n, apps.fnd_responsibility_vl r
+where fv.profile_option_id = fp.profile_option_id 
+and fp.profile_option_name in ('NODE_TRUST_LEVEL', 'RESP_TRUST_LEVEL')
+and fv.level_value = n.node_id(+)
+and fv.level_value = r.responsibility_id(+);
 prompt [SECTION_END:EBS_DMZ_EXTERNAL_NODES]
 
 prompt [SECTION_START:EBS_APEX_ORDS_VERSION]
@@ -448,6 +529,7 @@ from apps.fnd_user fu, apps.fnd_oracle_userid fou, apps.fnd_data_group_units fdg
 where fu.user_id = fou.oracle_id and fou.oracle_id = fdgu.oracle_id
 and fou.oracle_username = drp.grantee
 and drp.granted_role in ('CONNECT', 'RESOURCE', 'DBA')
+and fou.oracle_id >= 20000
 and rownum <= 500;
 prompt [SECTION_END:EBS_USERS_SCHEMA_CONNECT]
 
@@ -536,23 +618,23 @@ select count(*) ||'|'|| decode(end_date, null, 'ACTIVE', 'INACTIVE') from apps.f
 prompt [SECTION_END:EBS_RESPONSIBILITIES]
 
 prompt [SECTION_START:CUSTOM_MENUS]
-select menu_name from apps.fnd_menus where menu_name like 'XX%' or menu_name like 'CUST%';
+select user_menu_name from apps.fnd_menus_vl where menu_name like 'XX%' or menu_name like 'CUST%';
 prompt [SECTION_END:CUSTOM_MENUS]
 
 prompt [SECTION_START:CUSTOM_FUNCTIONS]
-select function_name from apps.fnd_form_functions where function_name like 'XX%' or function_name like 'CUST%';
+select user_function_name from apps.fnd_form_functions_vl where function_name like 'XX%' or function_name like 'CUST%';
 prompt [SECTION_END:CUSTOM_FUNCTIONS]
 
 prompt [SECTION_START:CUSTOM_LOOKUPS]
-select lookup_type from apps.fnd_lookup_types where lookup_type like 'XX%' or lookup_type like 'CUST%';
+select meaning from apps.fnd_lookup_types_vl where lookup_type like 'XX%' or lookup_type like 'CUST%';
 prompt [SECTION_END:CUSTOM_LOOKUPS]
 
 prompt [SECTION_START:CUSTOM_VALUE_SETS]
-select flex_value_set_name from apps.fnd_flex_value_sets where flex_value_set_name like 'XX%' or flex_value_set_name like 'CUST%';
+select description from apps.fnd_flex_value_sets where flex_value_set_name like 'XX%' or flex_value_set_name like 'CUST%';
 prompt [SECTION_END:CUSTOM_VALUE_SETS]
 
 prompt [SECTION_START:CUSTOM_DFF]
-select descriptive_flexfield_name from apps.fnd_descriptive_flexs_vl where descriptive_flexfield_name like 'XX%' or title like '%Custom%';
+select title from apps.fnd_descriptive_flexs_vl where descriptive_flexfield_name like 'XX%' or title like '%Custom%';
 prompt [SECTION_END:CUSTOM_DFF]
 
 prompt [SECTION_START:SCHEDULER_JOBS]
