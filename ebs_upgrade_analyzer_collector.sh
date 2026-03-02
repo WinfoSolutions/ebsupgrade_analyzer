@@ -465,9 +465,7 @@ prompt [SECTION_END:INFRA_OBJECTS]
 prompt [SECTION_START:WORKLOAD_STATISTICS]
 select 'AVG_DAILY_CONC_REQS_30D' ||'|'|| round(count(*)/30) from apps.fnd_concurrent_requests where requested_start_date > sysdate-30
 union all
-select 'FND_ATTACHED_DOCS' ||'|'|| count(*) from apps.fnd_attached_documents
-union all
-select 'AUDIT_TABLE_ROWS' ||'|'|| sum(num_rows) from dba_tables where table_name in ('FND_LOG_MESSAGES', 'FND_CONCURRENT_REQUESTS');
+select 'FND_ATTACHED_DOCS' ||'|'|| count(*) from apps.fnd_attached_documents;
 prompt [SECTION_END:WORKLOAD_STATISTICS]
 
 prompt [SECTION_START:ORACLE_ALERTS_LIST]
@@ -676,9 +674,92 @@ prompt [SECTION_START:ATTACHMENTS_COUNT]
 select 'ATTACHMENTS' ||'|'|| count(*) from apps.fnd_attached_documents;
 prompt [SECTION_END:ATTACHMENTS_COUNT]
 
-prompt [SECTION_START:AUDIT_TABLES]
-select 'AUDIT_TABLES' ||'|'|| count(*) from dba_tables where table_name like '%_A' and owner = 'APPS';
-prompt [SECTION_END:AUDIT_TABLES]
+prompt [SECTION_START:ACTIVE_USERS_WITH_RESPONSIBILITIES]
+select fu.user_name ||'|'|| frv.responsibility_name
+from apps.fnd_user fu, apps.fnd_user_resp_groups_direct furgd, apps.fnd_responsibility_vl frv
+where fu.user_id = furgd.user_id
+and furgd.responsibility_id = frv.responsibility_id
+and furgd.end_date is null
+and furgd.start_date <= sysdate
+and nvl(furgd.end_date, sysdate + 1) > sysdate
+and fu.start_date <= sysdate
+and nvl(fu.end_date, sysdate + 1) > sysdate
+and frv.start_date <= sysdate
+and nvl(frv.end_date, sysdate + 1) > sysdate
+and rownum <= 1000;
+prompt [SECTION_END:ACTIVE_USERS_WITH_RESPONSIBILITIES]
+
+prompt [SECTION_START:APPLIED_PATCHES_90_DAYS]
+select distinct e.patch_name ||'|'|| trunc(a.last_update_date) ||'|'|| b.applied_flag
+from apps.ad_bugs a, apps.ad_patch_run_bugs b, apps.ad_patch_runs c, apps.ad_patch_drivers d, apps.ad_applied_patches e
+where a.bug_id = b.bug_id
+and b.patch_run_id = c.patch_run_id
+and c.patch_driver_id = d.patch_driver_id
+and d.applied_patch_id = e.applied_patch_id
+and a.last_update_date >= sysdate - 90
+order by 1 desc;
+prompt [SECTION_END:APPLIED_PATCHES_90_DAYS]
+
+prompt [SECTION_START:TOP_100_CONC_PROGS_BY_EXEC]
+select * from (
+select a.user_concurrent_program_name ||'|'|| count(actual_completion_date) as total_executions
+from apps.fnd_conc_req_summary_v a
+where phase_code = 'C' and status_code = 'C'
+and a.requested_start_date > sysdate - 30
+group by a.user_concurrent_program_name
+order by count(actual_completion_date) desc)
+where rownum <= 100;
+prompt [SECTION_END:TOP_100_CONC_PROGS_BY_EXEC]
+
+prompt [SECTION_START:TOP_100_CONC_PROGS_BY_AVG_TIME]
+select * from (
+select a.user_concurrent_program_name ||'|'|| count(actual_completion_date) ||'|'||
+round(avg((nvl(actual_completion_date, sysdate) - a.requested_start_date) * 24), 2) ||'|'||
+round(max((nvl(actual_completion_date, sysdate) - a.requested_start_date) * 24), 2) ||'|'||
+round(min((nvl(actual_completion_date, sysdate) - a.requested_start_date) * 24), 2)
+from apps.fnd_conc_req_summary_v a
+where phase_code = 'C' and status_code = 'C'
+and a.requested_start_date > sysdate - 30
+group by a.user_concurrent_program_name
+order by avg((nvl(actual_completion_date, sysdate) - a.requested_start_date) * 24) desc)
+where rownum <= 100;
+prompt [SECTION_END:TOP_100_CONC_PROGS_BY_AVG_TIME]
+
+prompt [SECTION_START:FLAGGED_FILES_FOR_UPGRADE]
+select af.app_short_name ||'|'|| af.subdir ||'|'|| af.filename ||'|'|| afv.version ||'|'|| afv.translation_level ||'|'|| to_char(afv.version_date, 'YYYY-MM-DD')
+from apps.ad_files af, apps.ad_file_versions afv
+where af.file_id = afv.file_id
+and (af.filename like 'XX%' or af.filename like 'xx%' or af.subdir like '%/custom%' or af.subdir like '%/XX%')
+and rownum <= 500
+order by afv.version_date desc;
+prompt [SECTION_END:FLAGGED_FILES_FOR_UPGRADE]
+
+prompt [SECTION_START:CUSTOM_TOP_FILES]
+select at.name ||'|'|| at.basepath ||'|'|| nvl(at.applications_system_name, 'N/A')
+from apps.ad_appl_tops at
+where at.name like 'XX%' or at.basepath like '%/custom%';
+prompt [SECTION_END:CUSTOM_TOP_FILES]
+
+prompt [SECTION_START:AD_FILES_BY_TYPE]
+select substr(af.filename, instr(af.filename, '.', -1) + 1) as file_ext ||'|'|| count(*) as file_count
+from apps.ad_files af
+where af.filename like 'XX%' or af.filename like 'xx%'
+group by substr(af.filename, instr(af.filename, '.', -1) + 1)
+order by count(*) desc;
+prompt [SECTION_END:AD_FILES_BY_TYPE]
+
+prompt [SECTION_START:PATCHED_FILES_RECENT]
+select af.app_short_name ||'|'|| af.filename ||'|'|| aap.patch_name ||'|'|| to_char(aap.creation_date, 'YYYY-MM-DD')
+from apps.ad_files af, apps.ad_file_versions afv, apps.ad_patch_run_bug_actions aprba, apps.ad_patch_runs apr, apps.ad_patch_drivers apd, apps.ad_applied_patches aap
+where af.file_id = afv.file_id
+and afv.file_version_id = aprba.file_version_id
+and aprba.patch_run_id = apr.patch_run_id
+and apr.patch_driver_id = apd.patch_driver_id
+and apd.applied_patch_id = aap.applied_patch_id
+and aap.creation_date >= sysdate - 90
+and rownum <= 200
+order by aap.creation_date desc;
+prompt [SECTION_END:PATCHED_FILES_RECENT]
 
 
 exit;

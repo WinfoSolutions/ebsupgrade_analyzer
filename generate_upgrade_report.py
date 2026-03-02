@@ -586,6 +586,18 @@ def build_html(data):
     users_created = safe_get(data, 'USERS_CREATED_MONTHLY', [])
     ebs_languages = safe_get(data, 'EBS_LANGUAGES', [])
     
+    # New data extractions from Original Files queries
+    active_users_with_resp = safe_get(data, 'ACTIVE_USERS_WITH_RESPONSIBILITIES', [])
+    applied_patches_90_days = safe_get(data, 'APPLIED_PATCHES_90_DAYS', [])
+    top_100_conc_by_exec = safe_get(data, 'TOP_100_CONC_PROGS_BY_EXEC', [])
+    top_100_conc_by_time = safe_get(data, 'TOP_100_CONC_PROGS_BY_AVG_TIME', [])
+    
+    # Flagged files for upgrade analysis
+    flagged_files = safe_get(data, 'FLAGGED_FILES_FOR_UPGRADE', [])
+    custom_top_files = safe_get(data, 'CUSTOM_TOP_FILES', [])
+    ad_files_by_type = safe_get(data, 'AD_FILES_BY_TYPE', [])
+    patched_files_recent = safe_get(data, 'PATCHED_FILES_RECENT', [])
+    
     # CEMLI Object Data (for drilldowns)
     custom_workflows = safe_get(data, 'CUSTOM_WORKFLOWS', [])
     xml_publisher = safe_get(data, 'XML_PUBLISHER_DELIVERY', [])
@@ -870,6 +882,22 @@ def build_html(data):
             <h3>Other Customized Core Components</h3>
             {render_drilldown_table("Custom Workflow Definitions", custom_workflows, ["Item Type", "Display Name"])}
             {render_drilldown_table("BIP / XML Publisher Templates", xml_publisher, ["XML Template Code", "Output Type"])}
+            
+            <h3>Flagged Files for Upgrade Analysis</h3>
+            <p style="font-size:13px; color:#475569;">Custom files tracked in AD schema that require review and potential remediation during upgrade. These include XX-prefixed files and files in custom directories.</p>
+            {render_drilldown_table("View Flagged Custom Files (AD_FILES)", flagged_files, ["Application", "Directory", "Filename", "Version", "Translation Level", "Version Date"])}
+            
+            <h3>Custom Application Tops</h3>
+            <p style="font-size:13px; color:#475569;">Registered custom APPL_TOP directories that may contain custom code requiring migration.</p>
+            {render_table(custom_top_files, ["APPL_TOP Name", "Base Path", "Applications System"])}
+            
+            <h3>Custom Files Distribution by Type</h3>
+            <p style="font-size:13px; color:#475569;">Breakdown of custom file extensions to identify file types requiring specific remediation (e.g., .fmb, .pll, .class, .java).</p>
+            {render_table(ad_files_by_type, ["File Extension", "Count"])}
+            
+            <h3>Recently Patched Files (Last 90 Days)</h3>
+            <p style="font-size:13px; color:#475569;">Files modified by recent patches that may impact custom code dependencies.</p>
+            {render_drilldown_table("View Recently Patched Files", patched_files_recent, ["Application", "Filename", "Patch Name", "Applied Date"])}
         </div>
 
         <div id="topology" class="section">
@@ -970,6 +998,10 @@ def build_html(data):
             <h3>Recently Applied Patches (Last 180 Days)</h3>
             {render_table(safe_get(data, 'AD_APPLIED_PATCHES_RECENT', []), ["Patch Name", "Patch Type", "Applied Date"])}
             
+            <h3>Applied Patches (Last 90 Days - Detailed)</h3>
+            <p style="font-size:13px; color:#475569;">Comprehensive patch application history extracted from AD schema for recent upgrade activity tracking.</p>
+            {render_drilldown_table("View Applied Patches in Last 90 Days", applied_patches_90_days, ["Patch Name", "Last Update Date", "Applied Flag"])}
+            
             <h3>Database Links Detail</h3>
             {render_table(safe_get(data, 'DB_LINKS_DETAIL', []), ["Owner", "DB Link Name", "Host"])}
         </div>
@@ -987,6 +1019,14 @@ def build_html(data):
             
             <h3>Volume of Daily Concurrent Requests for Last Month</h3>
             {render_table(daily_conc_reqs, ["Execution Date", "Total Job Count Raised"])}
+
+            <h3>Top 100 Concurrent Programs by Execution Count (30d)</h3>
+            <p style="font-size:13px; color:#475569;">Extended analysis of most frequently executed concurrent programs over the last 30 days.</p>
+            {render_drilldown_table("View Top 100 Programs by Execution Count", top_100_conc_by_exec, ["Program Name", "Total Executions"])}
+
+            <h3>Top 100 Concurrent Programs by Average Run Time</h3>
+            <p style="font-size:13px; color:#475569;">Detailed performance analysis including average, maximum, and minimum execution times in hours.</p>
+            {render_drilldown_table("View Top 100 Programs by Average Time", top_100_conc_by_time, ["Program Name", "Executions", "Avg Hours", "Max Hours", "Min Hours"])}
 
             <h3>Top 50 Concurrent Programs by Aggregate Execution Counts</h3>
             {render_table(top_50_execs, ["EBS Concurrent Routine Program", "Execution Count (30d)"])}
@@ -1114,6 +1154,10 @@ def build_html(data):
             
             <h3>User Base Trajectory (Created Per Month)</h3>
             {render_table(users_created, ["Account Creation Month", "Volume Generated"])}
+            
+            <h3>Active Users with Responsibilities</h3>
+            <p style="font-size:13px; color:#475569;">Mapping of active users to their assigned responsibilities for security and access control analysis during upgrade.</p>
+            {render_drilldown_table("View Active Users with Responsibilities (up to 1000)", active_users_with_resp, ["User Name", "Responsibility Name"])}
         </div>
 
         <div id="risks" class="section">
