@@ -702,7 +702,7 @@ prompt [SECTION_END:APPLIED_PATCHES_90_DAYS]
 
 prompt [SECTION_START:TOP_100_CONC_PROGS_BY_EXEC]
 select * from (
-select a.user_concurrent_program_name ||'|'|| count(actual_completion_date) as total_executions
+select a.user_concurrent_program_name ||'|'|| count(actual_completion_date)
 from apps.fnd_conc_req_summary_v a
 where phase_code = 'C' and status_code = 'C'
 and a.requested_start_date > sysdate - 30
@@ -726,12 +726,13 @@ where rownum <= 100;
 prompt [SECTION_END:TOP_100_CONC_PROGS_BY_AVG_TIME]
 
 prompt [SECTION_START:FLAGGED_FILES_FOR_UPGRADE]
+select * from (
 select af.app_short_name ||'|'|| af.subdir ||'|'|| af.filename ||'|'|| afv.version ||'|'|| afv.translation_level ||'|'|| to_char(afv.version_date, 'YYYY-MM-DD')
 from apps.ad_files af, apps.ad_file_versions afv
 where af.file_id = afv.file_id
 and (af.filename like 'XX%' or af.filename like 'xx%' or af.subdir like '%/custom%' or af.subdir like '%/XX%')
-and rownum <= 500
-order by afv.version_date desc;
+order by afv.version_date desc)
+where rownum <= 500;
 prompt [SECTION_END:FLAGGED_FILES_FOR_UPGRADE]
 
 prompt [SECTION_START:CUSTOM_TOP_FILES]
@@ -741,7 +742,7 @@ where at.name like 'XX%' or at.basepath like '%/custom%';
 prompt [SECTION_END:CUSTOM_TOP_FILES]
 
 prompt [SECTION_START:AD_FILES_BY_TYPE]
-select substr(af.filename, instr(af.filename, '.', -1) + 1) as file_ext ||'|'|| count(*) as file_count
+select substr(af.filename, instr(af.filename, '.', -1) + 1) ||'|'|| count(*)
 from apps.ad_files af
 where af.filename like 'XX%' or af.filename like 'xx%'
 group by substr(af.filename, instr(af.filename, '.', -1) + 1)
@@ -749,6 +750,7 @@ order by count(*) desc;
 prompt [SECTION_END:AD_FILES_BY_TYPE]
 
 prompt [SECTION_START:PATCHED_FILES_RECENT]
+select * from (
 select af.app_short_name ||'|'|| af.filename ||'|'|| aap.patch_name ||'|'|| to_char(aap.creation_date, 'YYYY-MM-DD')
 from apps.ad_files af, apps.ad_file_versions afv, apps.ad_patch_run_bug_actions aprba, apps.ad_patch_runs apr, apps.ad_patch_drivers apd, apps.ad_applied_patches aap
 where af.file_id = afv.file_id
@@ -757,8 +759,8 @@ and aprba.patch_run_id = apr.patch_run_id
 and apr.patch_driver_id = apd.patch_driver_id
 and apd.applied_patch_id = aap.applied_patch_id
 and aap.creation_date >= sysdate - 90
-and rownum <= 200
-order by aap.creation_date desc;
+order by aap.creation_date desc)
+where rownum <= 200;
 prompt [SECTION_END:PATCHED_FILES_RECENT]
 
 
