@@ -398,7 +398,7 @@ def calculate_effort_estimation(complexity_payload, custom_objs, db_size, active
         effort['cemli'] = int(effort['cemli'] * 1.2)
         
     # Adjust DB based on size
-    db_size_gb = float(db_size) if db_size else 0
+    db_size_gb = safe_float(db_size, 0)
     if db_size_gb > 3000:
         effort['db'] = int(effort['db'] * 1.5)
     elif db_size_gb > 1500:
