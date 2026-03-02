@@ -97,6 +97,46 @@ def render_drilldown_table(summary_text, rows, headers):
     """
     return html
 
+def render_url_profiles_table(url_profiles):
+    """Render URL profiles with recommendations for upgrade."""
+    if not url_profiles or (len(url_profiles) == 1 and url_profiles[0][0] == 'N/A'):
+        return "<p style='color:#777; font-size:14px; font-style:italic;'>No URL profile data found.</p>"
+    
+    # Define recommendations for each profile
+    recommendations = {
+        'APPS_FRAMEWORK_AGENT': 'Update to new WebLogic managed server URL format. Must use HTTPS with valid SSL certificate in EBS 12.2.11+.',
+        'APPS_AUTH_AGENT': 'Configure for Oracle Access Manager integration or leave blank for standard FND authentication.',
+        'FND_APEX_URL': 'Update to APEX 23.x URL after deploying APEX on 19c/23ai database. ORDS must be configured separately.',
+        'FND_EXTERNAL_ADF_URL': 'Update ADF URL if external ADF applications are deployed. Validate WebLogic domain configuration.',
+        'INV_EBI_SERVER_URL': 'Update ISG (Integrated SOA Gateway) server URL for REST/SOAP service endpoints.',
+        'ICX_FORMS_LAUNCHER': 'Forms servlet URL - update to new WebLogic domain URL. Critical for Forms application launch.'
+    }
+    
+    html = '<table><thead><tr><th>Profile Name</th><th>Current Value</th><th style="width:40%;">Upgrade Recommendation</th></tr></thead><tbody>'
+    
+    for row in url_profiles:
+        if len(row) < 2:
+            continue
+        profile_name = row[0] if row[0] else ''
+        profile_value = row[1] if row[1] else 'NOT_DEFINED'
+        recommendation = recommendations.get(profile_name, 'Review and update as needed post-upgrade.')
+        
+        # Determine status color
+        if profile_value == 'NOT_DEFINED' or not profile_value.strip():
+            status_style = 'background:#FEF3C7; color:#92400E;'
+            value_display = '<span style="color:#92400E; font-style:italic;">Not Configured</span>'
+        elif 'http://' in profile_value.lower():
+            status_style = 'background:#FEE2E2; color:#991B1B;'
+            value_display = f'{profile_value} <br/><span style="color:#991B1B; font-size:12px;">⚠️ HTTP - Should use HTTPS</span>'
+        else:
+            status_style = 'background:#D1FAE5; color:#065F46;'
+            value_display = profile_value
+        
+        html += f'<tr><td style="font-weight:600;">{profile_name}</td><td style="{status_style}">{value_display}</td><td style="font-size:13px;">{recommendation}</td></tr>'
+    
+    html += '</tbody></table>'
+    return html
+
 def determine_integrations(profiles, apex_ords_data):
     integ = {
         'SSO': {'status': 'Disabled', 'desc': 'No Oracle Access Manager or external SSO agents mapping detected. Standard FND login assumed.', 'color': '--border-grey', 'roadmap': 'Standard FND User migration.'},
@@ -642,6 +682,9 @@ def build_html(data):
     users_created = safe_get(data, 'USERS_CREATED_MONTHLY', [])
     ebs_languages = safe_get(data, 'EBS_LANGUAGES', [])
     
+    # EBS URL Profiles for recommendations
+    ebs_url_profiles = safe_get(data, 'EBS_URL_PROFILES', [])
+    
     # New data extractions from Original Files queries
     active_users_with_resp = safe_get(data, 'ACTIVE_USERS_WITH_RESPONSIBILITIES', [])
     applied_patches_90_days = safe_get(data, 'APPLIED_PATCHES_90_DAYS', [])
@@ -663,9 +706,21 @@ def build_html(data):
     cemli_conc_sqlloader = safe_get(data, 'CEMLI_CONC_PROG_SQLLOADER', [])
     cemli_conc_sqlplus = safe_get(data, 'CEMLI_CONC_PROG_SQLPLUS', [])
     
+    # CEMLI Extract: Custom OAF and FND Objects
+    cemli_oaf_pages = safe_get(data, 'CEMLI_OAF_PAGES', [])
+    cemli_oaf_personalizations = safe_get(data, 'CEMLI_OAF_PERSONALIZATIONS', [])
+    cemli_lookups = safe_get(data, 'CEMLI_LOOKUPS', [])
+    cemli_menus = safe_get(data, 'CEMLI_MENUS', [])
+    cemli_messages = safe_get(data, 'CEMLI_MESSAGES', [])
+    cemli_profiles = safe_get(data, 'CEMLI_PROFILES', [])
+    cemli_request_groups = safe_get(data, 'CEMLI_REQUEST_GROUPS', [])
+    cemli_request_sets = safe_get(data, 'CEMLI_REQUEST_SETS', [])
+    cemli_value_sets = safe_get(data, 'CEMLI_VALUE_SETS', [])
+    
     # CEMLI Extract: Custom Database Objects
     cemli_db_functions = safe_get(data, 'CEMLI_DB_FUNCTIONS', [])
     cemli_db_indexes = safe_get(data, 'CEMLI_DB_INDEXES', [])
+    cemli_db_lobs = safe_get(data, 'CEMLI_DB_LOBS', [])
     cemli_db_packages = safe_get(data, 'CEMLI_DB_PACKAGES', [])
     cemli_db_procedures = safe_get(data, 'CEMLI_DB_PROCEDURES', [])
     cemli_db_sequences = safe_get(data, 'CEMLI_DB_SEQUENCES', [])
@@ -676,6 +731,7 @@ def build_html(data):
     cemli_db_views = safe_get(data, 'CEMLI_DB_VIEWS', [])
     cemli_db_mviews = safe_get(data, 'CEMLI_DB_MVIEWS', [])
     cemli_db_queues = safe_get(data, 'CEMLI_DB_QUEUES', [])
+    cemli_workflows = safe_get(data, 'CEMLI_WORKFLOWS', [])
     
     # CEMLI Extract: Custom Reporting Objects
     cemli_xml_templates = safe_get(data, 'CEMLI_XML_TEMPLATES', [])
@@ -811,11 +867,13 @@ def build_html(data):
         <a href="#topology">5. Physical Architecture</a>
         <a href="#wls_sizing">6. WLS Sizing & Context Services</a>
         <a href="#integrations">7. Enterprise Integrations</a>
-        <a href="#database">8. Database Analysis</a>
-        <a href="#workload">9. Performance & Processing</a>
-        <a href="#workflow">10. Fusion Middleware Components</a>
-        <a href="#functional">11. Functional Data Volumes</a>
-        <a href="#risks">12. Risk Register</a>
+        <a href="#urlprofiles">8. URL Profiles & Endpoints</a>
+        <a href="#concurrent">9. Concurrent Programs & Requests</a>
+        <a href="#database">10. Database Analysis</a>
+        <a href="#workload">11. Performance & Processing</a>
+        <a href="#workflow">12. Fusion Middleware Components</a>
+        <a href="#functional">13. Functional Data Volumes</a>
+        <a href="#risks">14. Risk Register</a>
     </div>
 
     <a href="#" id="backToTop" title="Back to Top" style="display:none; position:fixed; bottom:30px; right:30px; background:var(--primary-blue); color:white; padding:15px; border-radius:50%; text-decoration:none; font-weight:bold; z-index:999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">↑</a>
@@ -923,16 +981,30 @@ def build_html(data):
             </div>
 
             <h3>Concurrent Program Technical Debt</h3>
-            <p style="color:red; font-size:13px; font-weight:600; margin-top:0;">&#9888; Action Required: All 'Java' and 'Spawned' (C/C++) executables must be recompiled on the target OS.</p>
+            <p style="color:red; font-size:13px; font-weight:600; margin-top:0;">&#9888; Action Required: All 'Java' and 'Spawned' (C/C++) executables must be recompiled on the target OS. See <a href="#concurrent">Concurrent Programs & Requests</a> section for full details.</p>
             {render_drilldown_table("Custom Concurrent Programs List", cemli_cp, ["Application Module", "Program Name", "Executable Name", "Execution Method"])}
             
             <h3>Forms & OAF Modifications</h3>
             {render_drilldown_table("Custom Oracle Forms (fmb)", safe_get(data, 'CEMLI_FORMS_AND_PAGES', []), ["Application Module", "Form Name", "User Form Name"])}
-            {render_drilldown_table("MDS OAF Personalizations", safe_get(data, 'CEMLI_OAF_PERSONALIZATIONS', []), ["Application Module", "JDR Path Name"])}
+            
+            <h3>Custom OAF Pages</h3>
+            <p style="font-size:13px; color:#475569;">Custom OAF pages with controller classes and AM definitions. These require JDeveloper recompilation for EBS 12.2.</p>
+            {render_drilldown_table("Custom OAF Page Components", cemli_oaf_pages, ["Page Name", "Full Path", "Attribute Name", "Attribute Value"])}
+            
+            <h3>OAF Personalizations / Customizations</h3>
+            <p style="font-size:13px; color:#475569;">MDS-based personalizations applied to standard OAF pages. These must be validated post-upgrade.</p>
+            {render_drilldown_table("OAF Personalizations", cemli_oaf_personalizations, ["Document Name", "Full Path", "Last Update Date"])}
 
-            <h3>Custom FND Configurations (Deep Dive)</h3>
-            <p style="font-size:13px; color:#475569;">Includes menus, functions, responsibilities, lookups, and flexfields prefixed with XX% for rigorous application security mapping.</p>
-            {render_drilldown_table("Custom Application Setup Configurations", custom_fnd, ["FND Object Type", "Object Name"])}
+            <h3>Custom FND Objects (Detailed)</h3>
+            <p style="font-size:13px; color:#475569;">Comprehensive breakdown of custom FND objects by type with application ownership.</p>
+            
+            {render_drilldown_table("Custom Lookups", cemli_lookups, ["App ID", "Lookup Type", "Application Name", "Meaning"])}
+            {render_drilldown_table("Custom Menus", cemli_menus, ["Menu ID", "Menu Name", "User Menu Name", "Application Name"])}
+            {render_drilldown_table("Custom Messages", cemli_messages, ["App ID", "Message Name", "Application Name", "Message Text"])}
+            {render_drilldown_table("Custom Profiles", cemli_profiles, ["Profile ID", "Profile Name", "User Profile Name", "Application Name"])}
+            {render_drilldown_table("Custom Request Groups", cemli_request_groups, ["Group ID", "Group Name", "Application Name", "Description"])}
+            {render_drilldown_table("Custom Request Sets", cemli_request_sets, ["Set ID", "Set Name", "User Set Name", "Application Name"])}
+            {render_drilldown_table("Custom Value Sets", cemli_value_sets, ["Value Set ID", "Value Set Name", "Description", "Validation Type"])}
 
             <h3>Other Customized Core Components</h3>
             {render_drilldown_table("Custom Workflow Definitions", custom_workflows, ["Item Type", "Display Name"])}
@@ -961,32 +1033,30 @@ def build_html(data):
             <h3>CEMLI: Custom Alerts</h3>
             {render_drilldown_table("View Custom Alerts", cemli_custom_alerts, ["Alert Name", "Application Name", "Alert Type", "Status"])}
             
-            <h3>CEMLI: Concurrent Programs by Execution Type</h3>
-            <p style="font-size:13px; color:#475569;">Custom concurrent programs categorized by their execution method for targeted remediation.</p>
-            {render_drilldown_table("Host (Shell) Programs", cemli_conc_host, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
-            {render_drilldown_table("Java Programs", cemli_conc_java, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
-            {render_drilldown_table("Oracle Reports", cemli_conc_reports, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
-            {render_drilldown_table("SQL*Loader Programs", cemli_conc_sqlloader, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
-            {render_drilldown_table("SQL*Plus Programs", cemli_conc_sqlplus, ["User Program Name", "Program Name", "File Name", "Executable", "Status"])}
-            
             <h3>CEMLI: Custom Database Objects</h3>
-            <p style="font-size:13px; color:#475569;">Custom database objects (XX-prefixed) that require EBR enablement and validation.</p>
-            {render_drilldown_table("Custom Functions", cemli_db_functions, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Packages", cemli_db_packages, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Procedures", cemli_db_procedures, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Tables", cemli_db_tables, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Views", cemli_db_views, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Indexes", cemli_db_indexes, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Sequences", cemli_db_sequences, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Synonyms", cemli_db_synonyms, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Triggers", cemli_db_triggers, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Types", cemli_db_types, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Materialized Views", cemli_db_mviews, ["Object Name", "Type", "Owner", "Status"])}
-            {render_drilldown_table("Custom Queues", cemli_db_queues, ["Object Name", "Type", "Owner", "Status"])}
+            <p style="font-size:13px; color:#475569;">Custom database objects (XX-prefixed or in custom schemas) that require EBR enablement and validation.</p>
+            {render_drilldown_table("Custom Functions", cemli_db_functions, ["Object Name", "Type", "Owner", "Status", "Created", "Last DDL"])}
+            {render_drilldown_table("Custom Packages", cemli_db_packages, ["Object Name", "Type", "Owner", "Status", "Created", "Last DDL"])}
+            {render_drilldown_table("Custom Procedures", cemli_db_procedures, ["Object Name", "Type", "Owner", "Status", "Created", "Last DDL"])}
+            {render_drilldown_table("Custom Tables", cemli_db_tables, ["Table Name", "Owner", "Tablespace", "Num Rows", "Partitioned", "Created"])}
+            {render_drilldown_table("Custom Views", cemli_db_views, ["View Name", "Owner", "Status", "Created", "Last DDL"])}
+            {render_drilldown_table("Custom Indexes", cemli_db_indexes, ["Index Name", "Type", "Owner", "Status", "Table Name", "Uniqueness"])}
+            {render_drilldown_table("Custom Sequences", cemli_db_sequences, ["Sequence Name", "Owner", "Min Value", "Max Value", "Increment", "Last Number"])}
+            {render_drilldown_table("Custom Synonyms", cemli_db_synonyms, ["Synonym Name", "Owner", "Table Owner", "Table Name", "DB Link"])}
+            {render_drilldown_table("Custom Triggers", cemli_db_triggers, ["Trigger Name", "Owner", "Table Owner", "Table Name", "Event", "Status"])}
+            {render_drilldown_table("Custom Types", cemli_db_types, ["Object Name", "Type", "Owner", "Status", "Created", "Last DDL"])}
+            {render_drilldown_table("Custom Materialized Views", cemli_db_mviews, ["MView Name", "Owner", "Container", "Refresh Mode", "Refresh Method", "Staleness"])}
+            {render_drilldown_table("Custom Queues", cemli_db_queues, ["Queue Name", "Owner", "Queue Table", "Type", "Enqueue", "Dequeue"])}
+            {render_drilldown_table("Custom LOB Segments", cemli_db_lobs, ["Table Name", "Column Name", "Owner", "Segment Name", "Tablespace", "Chunk Size"])}
             
-            <h3>CEMLI: Custom Reporting Objects</h3>
-            {render_drilldown_table("XML Publisher Templates", cemli_xml_templates, ["Template Code", "Template Name", "Output Type", "Created Date"])}
-            {render_drilldown_table("Data Definitions", cemli_data_definitions, ["Data Source Code", "Data Source Name", "Status", "Created Date"])}
+            <h3>CEMLI: Custom Workflows</h3>
+            <p style="font-size:13px; color:#475569;">Custom workflow item types and processes requiring validation post-upgrade.</p>
+            {render_drilldown_table("Custom Workflow Definitions", cemli_workflows, ["Item Type", "Display Name", "Persistence Type", "Persistence Days", "Activity Count"])}
+            
+            <h3>CEMLI: Custom Reporting Objects (XML Publisher / BI Publisher)</h3>
+            <p style="font-size:13px; color:#475569;">Custom XML/BI Publisher templates and data definitions requiring migration and testing.</p>
+            {render_drilldown_table("XML Publisher Templates", cemli_xml_templates, ["App ID", "Template Code", "Template Name", "Description", "Application", "Type", "Status"])}
+            {render_drilldown_table("Data Definitions", cemli_data_definitions, ["App ID", "Data Source Code", "Data Source Name", "Description", "Application", "Status", "Created"])}
         </div>
 
         <div id="topology" class="section">
@@ -1054,6 +1124,76 @@ def build_html(data):
 
     html += f"""
             </div>
+        </div>
+
+        <div id="urlprofiles" class="section">
+            <div class="section-header">
+                <h2>URL Profiles & Endpoints</h2>
+            </div>
+            <p>Critical URL profiles that define how users and integrations connect to the EBS application. These must be updated during upgrade and SSL/TLS configuration changes.</p>
+            
+            <h3>EBS URL Configuration Profiles</h3>
+            <p style="font-size:13px; color:#475569;">These site-level profile values control application URLs, authentication endpoints, and integration service locations. Review and update these profiles post-upgrade.</p>
+            {render_url_profiles_table(ebs_url_profiles)}
+        </div>
+
+        <div id="concurrent" class="section">
+            <div class="section-header">
+                <h2>Concurrent Programs & Requests</h2>
+            </div>
+            <p>Comprehensive analysis of concurrent processing workloads, custom concurrent programs, and execution patterns critical for upgrade planning.</p>
+            
+            <h3>Custom Concurrent Programs</h3>
+            <p style="font-size:13px; color:#475569;">Custom concurrent programs registered under custom applications (application_id >= 20000) or with XX% naming convention. These require testing and potential remediation during upgrade.</p>
+            {render_drilldown_table("View Custom Concurrent Programs", cemli_cp, ["Application", "Program Name", "Executable Name", "Execution Method"])}
+            
+            <h3>CEMLI: Concurrent Programs by Execution Type</h3>
+            <div class="grid-summary">
+                <div class="metric-card" style="border-left-color: var(--warning-amber)">
+                    <div class="metric-title">Host Programs</div>
+                    <div class="metric-value">{len(cemli_conc_host) if cemli_conc_host and cemli_conc_host[0][0] != 'N/A' else 0}</div>
+                    <div style="font-size:13px; color:#64748b;">Shell script executables</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--primary-blue)">
+                    <div class="metric-title">Java Concurrent</div>
+                    <div class="metric-value">{len(cemli_conc_java) if cemli_conc_java and cemli_conc_java[0][0] != 'N/A' else 0}</div>
+                    <div style="font-size:13px; color:#64748b;">Java stored procedures</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--danger-red)">
+                    <div class="metric-title">Oracle Reports</div>
+                    <div class="metric-value">{len(cemli_conc_reports) if cemli_conc_reports and cemli_conc_reports[0][0] != 'N/A' else 0}</div>
+                    <div style="font-size:13px; color:#64748b;">Reports executables - CRITICAL</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--success-green)">
+                    <div class="metric-title">SQL*Plus Programs</div>
+                    <div class="metric-value">{len(cemli_conc_sqlplus) if cemli_conc_sqlplus and cemli_conc_sqlplus[0][0] != 'N/A' else 0}</div>
+                    <div style="font-size:13px; color:#64748b;">SQL*Plus scripts</div>
+                </div>
+            </div>
+            
+            {render_drilldown_table("Host Programs Detail", cemli_conc_host, ["Application", "Program Name", "Executable", "Description"])}
+            {render_drilldown_table("Oracle Reports Detail", cemli_conc_reports, ["Application", "Program Name", "Executable", "Description"])}
+            {render_drilldown_table("SQL*Loader Programs Detail", cemli_conc_sqlloader, ["Application", "Program Name", "Executable", "Description"])}
+            
+            <h3>Concurrent Manager Queue Status</h3>
+            <p style="font-size:13px; color:#475569;">Current state of concurrent manager queues showing processing capacity and workload distribution.</p>
+            {render_table(conc_mgr_status, ["Queue ID", "Short Name", "Manager Name", "Target Node", "Max Allowed", "Running", "Run Tasks", "Pending Tasks", "Control State"])}
+            
+            <h3>Daily Concurrent Request Volume (30 Days)</h3>
+            <p style="font-size:13px; color:#475569;">Daily concurrent request counts showing workload patterns for capacity planning.</p>
+            {render_table(daily_conc_reqs, ["Execution Date", "Total Request Count"])}
+            
+            <h3>Top 100 Concurrent Programs by Execution Count (30 Days)</h3>
+            <p style="font-size:13px; color:#475569;">Most frequently executed programs - prioritize these for upgrade testing.</p>
+            {render_drilldown_table("View Top 100 by Execution", top_100_conc_by_exec, ["Program Name", "Total Executions"])}
+            
+            <h3>Top 100 Concurrent Programs by Average Run Time</h3>
+            <p style="font-size:13px; color:#475569;">Longest running programs - monitor for performance regression after upgrade.</p>
+            {render_drilldown_table("View Top 100 by Run Time", top_100_conc_by_time, ["Program Name", "Executions", "Avg Hours", "Max Hours", "Min Hours"])}
+            
+            <h3>Scheduled Concurrent Jobs</h3>
+            <p style="font-size:13px; color:#475569;">Currently scheduled jobs that will need validation post-upgrade.</p>
+            {render_drilldown_table("View Scheduled Jobs", scheduled_jobs, ["Request ID", "Parent ID", "Program Name", "Status", "Phase", "Schedule Type"])}
         </div>
 
         <div id="database" class="section">
@@ -1156,26 +1296,6 @@ def build_html(data):
             
             <h3>PCP (Parallel Concurrent Processing) Distribution</h3>
             {render_table(pcp_managers, ["Queue Routing ID", "Primary Node", "Failover Node"])}
-            
-            <h3>Concurrent Manager Queue Status Matrix</h3>
-            {render_table(conc_mgr_status, ["Queue ID", "Short Name", "Manager Name", "Target Node", "Max Allowed", "Running", "Run Tasks", "Pending Tasks", "Control State"])}
-            
-            <h3>Volume of Daily Concurrent Requests for Last Month</h3>
-            {render_table(daily_conc_reqs, ["Execution Date", "Total Job Count Raised"])}
-
-            <h3>Top 100 Concurrent Programs by Execution Count (30d)</h3>
-            <p style="font-size:13px; color:#475569;">Extended analysis of most frequently executed concurrent programs over the last 30 days.</p>
-            {render_drilldown_table("View Top 100 Programs by Execution Count", top_100_conc_by_exec, ["Program Name", "Total Executions"])}
-
-            <h3>Top 100 Concurrent Programs by Average Run Time</h3>
-            <p style="font-size:13px; color:#475569;">Detailed performance analysis including average, maximum, and minimum execution times in hours.</p>
-            {render_drilldown_table("View Top 100 Programs by Average Time", top_100_conc_by_time, ["Program Name", "Executions", "Avg Hours", "Max Hours", "Min Hours"])}
-
-            <h3>Top 50 Concurrent Programs by Aggregate Execution Counts</h3>
-            {render_table(top_50_execs, ["EBS Concurrent Routine Program", "Execution Count (30d)"])}
-
-            <h3>Top 50 Concurrent Programs by Average Run Time (Mins)</h3>
-            {render_table(top_50_time, ["EBS Concurrent Routine Program", "Avg Historic Duration (Mins)"])}
             
             <h3>Top 10 Heaviest Database Segments</h3>
             <p style="font-size:13px; color:#475569;">Storage engineering constraints for tablespace reorganizations.</p>

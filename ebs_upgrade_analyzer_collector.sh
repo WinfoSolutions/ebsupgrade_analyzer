@@ -308,6 +308,13 @@ AND (
 );
 prompt [SECTION_END:EBS_INTEGRATIONS_PROFILES]
 
+prompt [SECTION_START:EBS_URL_PROFILES]
+SELECT fo.profile_option_name ||'|'|| NVL(fv.profile_option_value, 'NOT_DEFINED')
+FROM apps.fnd_profile_option_values fv, apps.fnd_profile_options fo
+WHERE fo.profile_option_id = fv.profile_option_id AND fv.level_value = 0
+AND fo.profile_option_name IN ('APPS_FRAMEWORK_AGENT','APPS_AUTH_AGENT','FND_APEX_URL','FND_EXTERNAL_ADF_URL','INV_EBI_SERVER_URL','ICX_FORMS_LAUNCHER');
+prompt [SECTION_END:EBS_URL_PROFILES]
+
 prompt [SECTION_START:EBS_VERSION]
 select release_name from apps.fnd_product_groups;
 prompt [SECTION_END:EBS_VERSION]
@@ -461,18 +468,114 @@ select fa.application_short_name ||'|'|| fcp.concurrent_program_name ||'|'|| fee
 from apps.fnd_executables fee, apps.fnd_concurrent_programs fcp, apps.fnd_application fa
 where fee.executable_id = fcp.executable_id
 and fcp.application_id = fa.application_id
-and (fcp.concurrent_program_name like 'XX%' or fee.executable_name like 'XX%');
+and (fa.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(fcp.concurrent_program_name) LIKE 'XX%' OR upper(fee.executable_name) LIKE 'XX%');
 prompt [SECTION_END:CEMLI_CONCURRENT_PROGRAMS]
 
 prompt [SECTION_START:CEMLI_FORMS_AND_PAGES]
-select fa.application_short_name ||'|'|| form_name ||'|'|| user_form_name from apps.fnd_form_vl ff, apps.fnd_application fa 
-where ff.application_id = fa.application_id and (form_name like 'XX%' or form_name like 'XX%');
+select fa.application_short_name ||'|'|| ff.form_name ||'|'|| ff.user_form_name
+from apps.fnd_form_vl ff, apps.fnd_application_vl fa
+where ff.application_id = fa.application_id
+and (fa.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(ff.form_name) LIKE 'XX%');
 prompt [SECTION_END:CEMLI_FORMS_AND_PAGES]
 
+prompt [SECTION_START:CEMLI_OAF_PAGES]
+SELECT DISTINCT jp.path_name ||'|'|| jp.the_path ||'|'|| jat.att_name ||'|'|| jat.att_value
+FROM (SELECT path_name, path_docid, path_type, sys_connect_by_path(path_name, '/') the_path,
+             CONNECT_BY_ISLEAF is_leaf, created_by, last_update_date
+      FROM apps.jdr_paths CONNECT BY path_owner_docid = PRIOR path_docid
+      START WITH path_owner_docid = 0) jp, apps.jdr_attributes jat
+WHERE is_leaf = 1 AND path_type = 'DOCUMENT' AND created_by NOT IN ('1')
+AND jp.path_docid = jat.att_comp_docid
+AND (jat.att_name = 'amDefName' OR jat.att_name = 'controllerClass' OR jat.att_name = 'viewName')
+AND (upper(path_name) LIKE 'XX%' OR upper(the_path) LIKE '%XX%')
+AND upper(the_path) NOT LIKE '%/CUSTOMIZATIONS/%'
+ORDER BY 1;
+prompt [SECTION_END:CEMLI_OAF_PAGES]
+
 prompt [SECTION_START:CEMLI_OAF_PERSONALIZATIONS]
-select upper(regexp_substr(path_name, '^/oracle/apps/([^/]+)/', 1, 1, 'i', 1)) ||'|'|| path_name from apps.jdr_paths 
-where path_type = 'DOCUMENT' and (path_name like '/oracle/apps/%/customizations/%' or path_name like '%/XX%');
+SELECT DISTINCT jp.path_name ||'|'|| jp.the_path ||'|'|| jp.last_update_date
+FROM (SELECT path_name, path_docid, path_type, sys_connect_by_path(path_name, '/') the_path,
+             CONNECT_BY_ISLEAF is_leaf, created_by, last_update_date
+      FROM apps.jdr_paths CONNECT BY path_owner_docid = PRIOR path_docid
+      START WITH path_owner_docid = 0) jp
+WHERE jp.the_path LIKE '%customizations%' AND jp.is_leaf = 1 
+AND jp.path_type = 'DOCUMENT' AND jp.created_by NOT IN ('1');
 prompt [SECTION_END:CEMLI_OAF_PERSONALIZATIONS]
+
+prompt [SECTION_START:CEMLI_LOOKUPS]
+SELECT flt.application_id ||'|'|| flt.lookup_type ||'|'|| ftl.application_name ||'|'|| flt.meaning
+FROM apps.fnd_lookup_types_vl flt, apps.fnd_application_tl ftl
+WHERE flt.application_id = ftl.application_id AND ftl.language = 'US'
+AND (flt.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(flt.lookup_type) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_LOOKUPS]
+
+prompt [SECTION_START:CEMLI_MENUS]
+SELECT fm.menu_id ||'|'|| fm.menu_name ||'|'|| fm.user_menu_name ||'|'|| fa.application_name
+FROM apps.fnd_menus_vl fm, apps.fnd_application_tl fa
+WHERE fm.application_id = fa.application_id(+) AND fa.language(+) = 'US'
+AND (fm.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(fm.menu_name) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_MENUS]
+
+prompt [SECTION_START:CEMLI_MESSAGES]
+SELECT fnm.application_id ||'|'|| fnm.message_name ||'|'|| fa.application_name ||'|'|| fnm.message_text
+FROM apps.fnd_new_messages fnm, apps.fnd_application_tl fa
+WHERE fnm.application_id = fa.application_id AND fa.language = 'US' AND fnm.language_code = 'US'
+AND (fnm.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(fnm.message_name) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_MESSAGES]
+
+prompt [SECTION_START:CEMLI_PROFILES]
+SELECT fpo.profile_option_id ||'|'|| fpo.profile_option_name ||'|'|| fpot.user_profile_option_name ||'|'|| fa.application_name
+FROM apps.fnd_profile_options fpo, apps.fnd_profile_options_tl fpot, apps.fnd_application_tl fa
+WHERE fpo.profile_option_name = fpot.profile_option_name AND fpot.language = 'US'
+AND fpo.application_id = fa.application_id AND fa.language = 'US'
+AND (fpo.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(fpo.profile_option_name) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_PROFILES]
+
+prompt [SECTION_START:CEMLI_REQUEST_GROUPS]
+SELECT frg.request_group_id ||'|'|| frg.request_group_name ||'|'|| fa.application_name ||'|'|| frg.description
+FROM apps.fnd_request_groups frg, apps.fnd_application_tl fa
+WHERE frg.application_id = fa.application_id AND fa.language = 'US'
+AND (frg.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(frg.request_group_name) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_REQUEST_GROUPS]
+
+prompt [SECTION_START:CEMLI_REQUEST_SETS]
+SELECT frs.request_set_id ||'|'|| frs.request_set_name ||'|'|| frs.user_request_set_name ||'|'|| fa.application_name
+FROM apps.fnd_request_sets_vl frs, apps.fnd_application_tl fa
+WHERE frs.application_id = fa.application_id AND fa.language = 'US'
+AND (frs.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(frs.request_set_name) LIKE 'XX%');
+prompt [SECTION_END:CEMLI_REQUEST_SETS]
+
+prompt [SECTION_START:CEMLI_VALUE_SETS]
+SELECT fvs.flex_value_set_id ||'|'|| fvs.flex_value_set_name ||'|'|| fvs.description ||'|'|| fvs.validation_type
+FROM apps.fnd_flex_value_sets fvs
+WHERE fvs.created_by NOT IN (SELECT user_id FROM apps.fnd_user WHERE user_name LIKE 'ORACLE12%' 
+     OR user_name IN ('INITIAL SETUP','AUTOINSTALL'))
+OR upper(fvs.flex_value_set_name) LIKE 'XX%';
+prompt [SECTION_END:CEMLI_VALUE_SETS]
 
 prompt [SECTION_START:DB_INIT_PARAMS_FULL]
 select name ||'|'|| value ||'|'|| isdefault ||'|'|| ismodified 
@@ -897,130 +1000,137 @@ and (fee.executable_name like 'XX%' or fcp.concurrent_program_name like 'XX%')
 and rownum <= 200;
 prompt [SECTION_END:CEMLI_CONC_PROG_SQLPLUS]
 
--- CEMLI Extract: Custom Database Objects
+-- CEMLI Extract: Custom Database Objects (Comprehensive)
 
 prompt [SECTION_START:CEMLI_DB_FUNCTIONS]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status ||'|'|| to_char(created, 'YYYY-MM-DD') ||'|'|| to_char(last_ddl_time, 'YYYY-MM-DD')
 from all_objects
 where object_type = 'FUNCTION'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 300;
+and owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(object_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_FUNCTIONS]
 
 prompt [SECTION_START:CEMLI_DB_INDEXES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'INDEX'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 500;
+select ai.index_name ||'|'|| ai.index_type ||'|'|| ai.owner ||'|'|| ai.status ||'|'|| ai.table_name ||'|'|| ai.uniqueness
+from all_indexes ai
+where ai.owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(ai.index_name) like 'XX%' OR ai.owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_INDEXES]
 
+prompt [SECTION_START:CEMLI_DB_LOBS]
+select al.table_name ||'|'|| al.column_name ||'|'|| al.owner ||'|'|| al.segment_name ||'|'|| al.tablespace_name ||'|'|| al.chunk
+from all_lobs al
+where al.owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(al.table_name) like 'XX%' OR al.owner like 'XX%');
+prompt [SECTION_END:CEMLI_DB_LOBS]
+
 prompt [SECTION_START:CEMLI_DB_PACKAGES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status ||'|'|| to_char(created, 'YYYY-MM-DD') ||'|'|| to_char(last_ddl_time, 'YYYY-MM-DD')
 from all_objects
 where object_type in ('PACKAGE', 'PACKAGE BODY')
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 500;
+and owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(object_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_PACKAGES]
 
 prompt [SECTION_START:CEMLI_DB_PROCEDURES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status ||'|'|| to_char(created, 'YYYY-MM-DD') ||'|'|| to_char(last_ddl_time, 'YYYY-MM-DD')
 from all_objects
 where object_type = 'PROCEDURE'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 300;
+and owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(object_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_PROCEDURES]
 
 prompt [SECTION_START:CEMLI_DB_SEQUENCES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'SEQUENCE'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 300;
+select sequence_name ||'|'|| sequence_owner ||'|'|| min_value ||'|'|| max_value ||'|'|| increment_by ||'|'|| last_number
+from all_sequences
+where sequence_owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(sequence_name) like 'XX%' OR sequence_owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_SEQUENCES]
 
 prompt [SECTION_START:CEMLI_DB_SYNONYMS]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'SYNONYM'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 500;
+select synonym_name ||'|'|| owner ||'|'|| table_owner ||'|'|| table_name ||'|'|| db_link
+from all_synonyms
+where owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100','PUBLIC')
+and (upper(synonym_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_SYNONYMS]
 
 prompt [SECTION_START:CEMLI_DB_TABLES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'TABLE'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 500;
+select at.table_name ||'|'|| at.owner ||'|'|| at.tablespace_name ||'|'|| at.num_rows ||'|'|| at.partitioned ||'|'|| to_char(ao.created, 'YYYY-MM-DD')
+from all_tables at, all_objects ao
+where at.owner = ao.owner and at.table_name = ao.object_name and ao.object_type = 'TABLE'
+and at.owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(at.table_name) like 'XX%' OR at.owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_TABLES]
 
 prompt [SECTION_START:CEMLI_DB_TRIGGERS]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'TRIGGER'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 300;
+select trigger_name ||'|'|| owner ||'|'|| table_owner ||'|'|| table_name ||'|'|| triggering_event ||'|'|| status
+from all_triggers
+where owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(trigger_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_TRIGGERS]
 
 prompt [SECTION_START:CEMLI_DB_TYPES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
+select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status ||'|'|| to_char(created, 'YYYY-MM-DD') ||'|'|| to_char(last_ddl_time, 'YYYY-MM-DD')
 from all_objects
 where object_type in ('TYPE', 'TYPE BODY')
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 300;
+and owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(object_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_TYPES]
 
 prompt [SECTION_START:CEMLI_DB_VIEWS]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'VIEW'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 500;
+select av.view_name ||'|'|| av.owner ||'|'|| ao.status ||'|'|| to_char(ao.created, 'YYYY-MM-DD') ||'|'|| to_char(ao.last_ddl_time, 'YYYY-MM-DD')
+from all_views av, all_objects ao
+where av.owner = ao.owner and av.view_name = ao.object_name and ao.object_type = 'VIEW'
+and av.owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(av.view_name) like 'XX%' OR av.owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_VIEWS]
 
 prompt [SECTION_START:CEMLI_DB_MVIEWS]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'MATERIALIZED VIEW'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 200;
+select mview_name ||'|'|| owner ||'|'|| container_name ||'|'|| refresh_mode ||'|'|| refresh_method ||'|'|| staleness
+from all_mviews
+where owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(mview_name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_MVIEWS]
 
 prompt [SECTION_START:CEMLI_DB_QUEUES]
-select object_name ||'|'|| object_type ||'|'|| owner ||'|'|| status
-from all_objects
-where object_type = 'QUEUE'
-and owner != 'APPS_MRC'
-and upper(object_name) like 'XX%'
-and rownum <= 100;
+select name ||'|'|| owner ||'|'|| queue_table ||'|'|| queue_type ||'|'|| enqueue_enabled ||'|'|| dequeue_enabled
+from all_queues
+where owner not in ('SYS','SYSTEM','APPS_MRC','CTXSYS','MDSYS','XDB','WMSYS','ORDSYS','ORDDATA','APEX_050100')
+and (upper(name) like 'XX%' OR owner like 'XX%');
 prompt [SECTION_END:CEMLI_DB_QUEUES]
+
+prompt [SECTION_START:CEMLI_WORKFLOWS]
+select wit.item_type ||'|'|| wit.display_name ||'|'|| wit.persistence_type ||'|'|| wit.persistence_days ||'|'|| 
+       (select count(*) from apps.wf_activities wa where wa.item_type = wit.item_type) activity_count
+from apps.wf_item_types_vl wit
+where upper(wit.item_type) like 'XX%'
+or wit.item_type in (select distinct item_type from apps.wf_process_activities where process_name like 'XX%');
+prompt [SECTION_END:CEMLI_WORKFLOWS]
 
 -- CEMLI Extract: Custom Reporting Objects
 
 prompt [SECTION_START:CEMLI_XML_TEMPLATES]
-select template_code ||'|'|| template_name ||'|'|| default_output_type ||'|'|| to_char(creation_date, 'YYYY-MM-DD')
-from apps.xdo_templates_vl
-where template_code like 'XX%'
-and rownum <= 300;
+SELECT DISTINCT xtv.application_id ||'|'|| xtv.template_code ||'|'|| xtv.template_name ||'|'|| 
+       nvl(xtv.description, 'No Description') ||'|'|| fav.application_name ||'|'|| 
+       xtv.template_type_code ||'|'|| decode(xtv.template_status, 'E', 'Enabled', 'D', 'Disabled', xtv.template_status)
+FROM apps.xdo_templates_vl xtv, apps.fnd_application_vl fav
+WHERE fav.application_id = xtv.application_id
+AND (xtv.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(xtv.template_code) LIKE 'XX%');
 prompt [SECTION_END:CEMLI_XML_TEMPLATES]
 
 prompt [SECTION_START:CEMLI_DATA_DEFINITIONS]
-select data_source_code ||'|'|| data_source_name ||'|'|| data_source_status ||'|'|| to_char(creation_date, 'YYYY-MM-DD')
-from apps.xdo_ds_definitions_vl
-where data_source_code like 'XX%'
-and rownum <= 200;
+SELECT DISTINCT xdd.application_id ||'|'|| xdd.data_source_code ||'|'|| xdd.data_source_name ||'|'|| 
+       nvl(xdd.description, 'No Description') ||'|'|| fav.application_name ||'|'|| 
+       decode(xdd.data_source_status, 'E', 'Enabled', 'D', 'Disabled', xdd.data_source_status) ||'|'|| to_char(xdd.creation_date, 'YYYY-MM-DD')
+FROM apps.xdo_ds_definitions_vl xdd, apps.fnd_application_vl fav
+WHERE fav.application_id = xdd.application_id
+AND (xdd.application_id IN (SELECT app.application_id FROM apps.fnd_application app, apps.fnd_user usr
+     WHERE usr.user_id = app.created_by AND usr.user_name NOT LIKE 'ORACLE12%'
+     AND usr.user_name NOT IN ('INITIAL SETUP','AUTOINSTALL') AND app.application_id >= 20000)
+     OR upper(xdd.data_source_code) LIKE 'XX%');
 prompt [SECTION_END:CEMLI_DATA_DEFINITIONS]
 
 -- Data Reconciliator: Business Group and Organization Structure
