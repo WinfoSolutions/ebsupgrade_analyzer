@@ -5,6 +5,10 @@
 #              Includes Deep-Dive into EBS Profiles, Topology, Context Files & Integrations
 #              Now executes as LEAST-PRIVILEGED USER and extracts CEMLI summaries natively.
 # Usage: ./ebs_upgrade_analyzer_collector.sh
+#
+# Copyright (c) 2024-2026 Winfo Solutions. All Rights Reserved.
+# This tool is Winfo Solutions Proprietary and Confidential.
+# Unauthorized copying, distribution, or use of this file is strictly prohibited.
 # ==============================================================================
 
 HOST_NAME=$(hostname)

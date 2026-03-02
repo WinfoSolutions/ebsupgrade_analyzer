@@ -1,3 +1,12 @@
+# ==============================================================================
+# Script Name: generate_upgrade_report.py
+# Description: Generates HTML report from EBS upgrade analyzer data
+#
+# Copyright (c) 2024-2026 Winfo Solutions. All Rights Reserved.
+# This tool is Winfo Solutions Proprietary and Confidential.
+# Unauthorized copying, distribution, or use of this file is strictly prohibited.
+# ==============================================================================
+
 import sys
 import os
 from datetime import datetime
@@ -678,9 +687,6 @@ def build_html(data):
     # Calculate Complexity
     complexity_payload = calculate_complexity_score(data, db_params, active_users, custom_objs, custom_schemas, db_size, os_info, ebs_version, profiles)
     
-    # Calculate Effort Estimation
-    effort_estimation = calculate_effort_estimation(complexity_payload, custom_objs, db_size, active_users)
-    
     # Generate Risk Register
     risk_register = generate_risk_register(data, complexity_payload, os_info, 
                                            db_version_info[1] if len(db_version_info)>1 else '', 
@@ -777,16 +783,15 @@ def build_html(data):
         <a href="#executive">1. Executive Summary</a>
         <a href="#issues">2. Issues & Challenges</a>
         <a href="#roadmap">3. Upgrade Roadmap</a>
-        <a href="#effort">4. Effort Estimation</a>
-        <a href="#cemli">5. CEMLI / Customization Impact</a>
-        <a href="#topology">6. Physical Architecture</a>
-        <a href="#wls_sizing">7. WLS Sizing & Context Services</a>
-        <a href="#integrations">8. Enterprise Integrations</a>
-        <a href="#database">9. Database Analysis</a>
-        <a href="#workload">10. Performance & Processing</a>
-        <a href="#workflow">11. Fusion Middleware Components</a>
-        <a href="#functional">12. Functional Data Volumes</a>
-        <a href="#risks">13. Risk Register</a>
+        <a href="#cemli">4. CEMLI / Customization Impact</a>
+        <a href="#topology">5. Physical Architecture</a>
+        <a href="#wls_sizing">6. WLS Sizing & Context Services</a>
+        <a href="#integrations">7. Enterprise Integrations</a>
+        <a href="#database">8. Database Analysis</a>
+        <a href="#workload">9. Performance & Processing</a>
+        <a href="#workflow">10. Fusion Middleware Components</a>
+        <a href="#functional">11. Functional Data Volumes</a>
+        <a href="#risks">12. Risk Register</a>
     </div>
 
     <a href="#" id="backToTop" title="Back to Top" style="display:none; position:fixed; bottom:30px; right:30px; background:var(--primary-blue); color:white; padding:15px; border-radius:50%; text-decoration:none; font-weight:bold; z-index:999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">↑</a>
@@ -798,7 +803,7 @@ def build_html(data):
             <div class="c-engine-section">
                 <div class="c-engine-left">
                     <h2 style="margin:0 0 10px 0; font-size: 24px; color: #F8FAFC;">AI Upgrade Complexity Engine</h2>
-                    <p style="margin:0; color:#94A3B8; font-size:15px; max-width: 600px;">The assessment engine processed {len(data.keys())} configuration metrics to mathematically compute the technical effort required for this transition to Oracle EBS 12.2 / 19c.</p>
+                    <p style="margin:0; color:#94A3B8; font-size:15px; max-width: 600px;">The assessment engine processed {len(data.keys())} configuration metrics to mathematically compute the complexity of this transition to Oracle EBS 12.2 / 19c.</p>
                     
                     <div class="cd-bars">
                         {''.join(f'''<div class="cd-row">
@@ -809,7 +814,7 @@ def build_html(data):
                     </div>
                 </div>
                 <div class="c-engine-right">
-                    <div style="font-size: 13px; color: #94A3B8; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Calculated Effort Score</div>
+                    <div style="font-size: 13px; color: #94A3B8; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Complexity Score</div>
                     <div class="c-engine-score">{complexity_payload['total']}</div>
                     <div style="font-size: 13px; color: #64748B;">/ 35 Max Points</div>
                     <div class="c-size-badge" style="border: 1px solid var({complexity_payload['color']}); color: var({complexity_payload['color']});">Blast Radius: {complexity_payload['size']}</div>
@@ -866,47 +871,6 @@ def build_html(data):
             </div>
             <p>A structured approach is required transitioning your <code>{ebs_version}</code> architecture. The typical critical path for a full DB and App tier replacement on Oracle Linux 9 involves 5 logical sequences.</p>
             {build_roadmap()}
-        </div>
-
-        <div id="effort" class="section">
-            <div class="section-header">
-                <h2>Effort Estimation by Workstream</h2>
-            </div>
-            <p>Based on the complexity assessment, the following effort distribution is estimated across standard upgrade workstreams. These are indicative weeks of effort, not calendar duration.</p>
-            
-            <div class="grid-summary">
-                <div class="metric-card" style="border-left-color: var(--primary-blue)">
-                    <div class="metric-title">Total Estimated Effort</div>
-                    <div class="metric-value">{effort_estimation['total_weeks']} Weeks</div>
-                    <div style="font-size:13px; color:#64748b;">Approximately {effort_estimation['total_months']} months of project work</div>
-                </div>
-                <div class="metric-card" style="border-left-color: var(--warning-amber)">
-                    <div class="metric-title">Complexity Classification</div>
-                    <div class="metric-value">{complexity_payload['size']}</div>
-                    <div style="font-size:13px; color:#64748b;">Score: {complexity_payload['total']}/35</div>
-                </div>
-            </div>
-            
-            <h3>Effort Distribution by Workstream</h3>
-            <table>
-                <thead>
-                    <tr><th>Workstream</th><th>Description</th><th>Estimated Weeks</th><th>% of Total</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><b>Infrastructure & Platform</b></td><td>Oracle Linux 9 deployment, network, storage provisioning</td><td>{effort_estimation['workstreams']['infra']}</td><td>{round(effort_estimation['workstreams']['infra']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Database Upgrade</b></td><td>19c/23ai upgrade, CDB conversion, character set migration</td><td>{effort_estimation['workstreams']['db']}</td><td>{round(effort_estimation['workstreams']['db']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Application Upgrade</b></td><td>EBS 12.2 installation, dual filesystem, online patching enablement</td><td>{effort_estimation['workstreams']['app']}</td><td>{round(effort_estimation['workstreams']['app']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>CEMLI Remediation</b></td><td>Custom code adaptation, EBR enablement, recompilation</td><td>{effort_estimation['workstreams']['cemli']}</td><td>{round(effort_estimation['workstreams']['cemli']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Security & SSO</b></td><td>SSO re-implementation, WebGate deployment, SSL certificates</td><td>{effort_estimation['workstreams']['sso']}</td><td>{round(effort_estimation['workstreams']['sso']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Integrations</b></td><td>DB links validation, SOA/REST migration, file interfaces</td><td>{effort_estimation['workstreams']['integrations']}</td><td>{round(effort_estimation['workstreams']['integrations']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Testing (SIT/UAT/Perf)</b></td><td>Functional testing, performance validation, UAT cycles</td><td>{effort_estimation['workstreams']['testing']}</td><td>{round(effort_estimation['workstreams']['testing']/effort_estimation['total_weeks']*100)}%</td></tr>
-                    <tr><td><b>Cutover & Hypercare</b></td><td>Go-live execution, post-production support</td><td>{effort_estimation['workstreams']['cutover']}</td><td>{round(effort_estimation['workstreams']['cutover']/effort_estimation['total_weeks']*100)}%</td></tr>
-                </tbody>
-            </table>
-            
-            <div style="background: #FEF3C7; border-left: 4px solid var(--warning-amber); padding: 15px; margin-top: 20px; border-radius: 4px;">
-                <b>Note:</b> These estimates assume a dedicated team with EBS upgrade experience. Actual effort may vary based on team composition, resource availability, and discovered complexity during execution.
-            </div>
         </div>
 
         <div id="cemli" class="section">
