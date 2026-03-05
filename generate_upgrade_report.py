@@ -198,7 +198,7 @@ def determine_integrations(profiles, apex_ords_data):
         # to be truly functional. Mark as "Review Required" if HRI_IMPL_OBIEE=Y but no FND_OBIEE_URL found yet
         if name == 'HRI_IMPL_OBIEE':
             value_upper = value.upper() if value else ''
-            if value_upper == 'Y' and integ['OBIEE']['status'] == 'Disabled':
+            if value_upper == 'Y' and integ.get('OBIEE', {}).get('status') == 'Disabled':
                 integ['OBIEE'] = {'status': 'Review Required', 'desc': f'HRI_IMPL_OBIEE={value} indicates HR Intelligence may be using OBIEE, but FND_OBIEE_URL is not configured. Review if OBIEE is actually deployed.', 'color': '--warning-amber', 'roadmap': 'Verify if Oracle Business Intelligence (OBIEE/OAC) is installed and being used. If not, consider disabling HRI_IMPL_OBIEE profile.'}
         
         # ENDECA detection - profiles that indicate actual Endeca usage (not just existence of profile)
@@ -578,8 +578,8 @@ def build_roadmap(ebs_version, db_version, is_rac, has_dataguard, tech_stack_inf
                     <strong>Continuous Innovation (12.2.14 / 12.2.15)</strong><br>
                     Apply the latest AD/TXK Delta packs in the run edition. Apply the 12.2.15 Release Update Pack (RUP). Re-integrate SSO, OAC, and ISG endpoints. Validate all integrations.
                 </div>
+            </div>
         </div>
-    </div>
     
     {rac_html}
     {dg_html}

@@ -212,25 +212,25 @@ where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' and ctx_type = 'A' group by node_name)
 union all
-select node_name ||'|sslterminator|'|| EXTRACTVALUE(XMLType(TEXT),'(//s_shared_file_system)[1]')
+select node_name ||'|shared_file_system|'|| EXTRACTVALUE(XMLType(TEXT),'(//s_shared_file_system)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' and ctx_type = 'A' group by node_name)
 union all
-select node_name ||'|webport|'|| EXTRACTVALUE(XMLType(TEXT),'(//webport)[1]')
+select node_name ||'|webport|'|| EXTRACTVALUE(XMLType(TEXT),'(//s_webport)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' and ctx_type = 'A' group by node_name)
 union all
-select node_name ||'|webssl_port|'|| EXTRACTVALUE(XMLType(TEXT),'(//webssl_port)[1]')
+select node_name ||'|webssl_port|'|| EXTRACTVALUE(XMLType(TEXT),'(//s_webssl_port)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
     (select node_name, max(last_update_date) from apps.fnd_oam_context_files where status = 'S' and ctx_type = 'A' group by node_name)
 union all
-select node_name ||'|Active_Port|'|| EXTRACTVALUE(XMLType(TEXT),'(//activewebport)[1]')
+select node_name ||'|Active_Port|'|| EXTRACTVALUE(XMLType(TEXT),'(//s_activewebport)[1]')
 from apps.fnd_oam_context_files
 where status = 'S' and ctx_type = 'A'
 and (node_name, last_update_date) in 
